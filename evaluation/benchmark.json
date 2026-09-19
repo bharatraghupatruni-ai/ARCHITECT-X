@@ -1,0 +1,528 @@
+{
+  "version": "1.0",
+  "description": "ARCHITECT-X Evaluation Benchmark — 20 software requirement cases across 10 domains",
+  "note": "This dataset is manually editable. Add/modify cases to extend coverage.",
+  "cases": [
+    {
+      "id": "EC-001",
+      "domain": "e-commerce",
+      "name": "High-Traffic E-Commerce Platform",
+      "requirement": "Build an e-commerce platform supporting 100,000 concurrent shoppers with a product catalog of 5 million items, real-time inventory tracking, and checkout processing. Integrate with Stripe for payments. Require sub-200ms product search response time and 99.99% uptime SLA.",
+      "expected_concerns": [
+        "Database connection pool exhaustion under high concurrency",
+        "Inventory race conditions during concurrent checkout",
+        "Session management scalability",
+        "Payment gateway failure handling"
+      ],
+      "expected_decisions": [
+        "Distributed cache (Redis) for product catalog hot paths",
+        "Event-driven inventory updates via message broker",
+        "CQRS read/write separation for product queries",
+        "Saga pattern for checkout distributed transactions"
+      ],
+      "expected_risks": [
+        "Overselling due to race conditions",
+        "Payment gateway timeout causing order inconsistency",
+        "Search index lag during high write throughput"
+      ],
+      "relevant_challenge_scenarios": [
+        "redis_unavailable",
+        "database_unavailable",
+        "traffic_spike_20x",
+        "payment_success_order_fail"
+      ]
+    },
+    {
+      "id": "EC-002",
+      "domain": "e-commerce",
+      "name": "Flash Sale Event System",
+      "requirement": "Design a flash sale system capable of handling 500,000 requests per second during a 30-minute sale event. Products are limited to 1,000 units. Users must not be able to purchase more than allocated. Cart reservation must expire in 10 minutes.",
+      "expected_concerns": [
+        "Thundering herd on sale start",
+        "Distributed locking for inventory reservation",
+        "Queue fairness and rate limiting per user"
+      ],
+      "expected_decisions": [
+        "Redis atomic DECR for inventory reservation",
+        "Message queue to serialize purchase requests",
+        "Per-user rate limiting at API gateway"
+      ],
+      "expected_risks": [
+        "Redis SPOF for inventory reservation",
+        "Queue backlog clearing time exceeding business SLA"
+      ],
+      "relevant_challenge_scenarios": [
+        "traffic_spike_20x",
+        "redis_unavailable",
+        "message_broker_unavailable"
+      ]
+    },
+    {
+      "id": "FD-001",
+      "domain": "food_delivery",
+      "name": "Real-Time Food Delivery Platform",
+      "requirement": "Build a food delivery system like Uber Eats supporting 50,000 concurrent active orders, real-time driver location tracking with 5-second update intervals, and restaurant order management. Require push notifications and sub-500ms location update latency.",
+      "expected_concerns": [
+        "High-frequency location write amplification",
+        "Fan-out notification at scale",
+        "Driver-order matching algorithm performance"
+      ],
+      "expected_decisions": [
+        "WebSocket or SSE for real-time driver tracking",
+        "Geospatial index for driver proximity queries",
+        "Event-driven order state machine via message broker"
+      ],
+      "expected_risks": [
+        "Location data staleness under network partition",
+        "Notification delivery failure during load spikes"
+      ],
+      "relevant_challenge_scenarios": [
+        "downstream_service_slow",
+        "message_broker_unavailable",
+        "app_service_crash"
+      ]
+    },
+    {
+      "id": "FD-002",
+      "domain": "food_delivery",
+      "name": "Restaurant Management System",
+      "requirement": "Create a multi-tenant SaaS platform for restaurant chains to manage menus, orders, kitchen display systems, and analytics. Support 10,000 restaurant tenants with strict data isolation and PCI-DSS compliance for card storage.",
+      "expected_concerns": [
+        "Tenant data isolation and cross-tenant query risk",
+        "PCI-DSS compliance requirements for card data",
+        "Multi-tenant database schema design"
+      ],
+      "expected_decisions": [
+        "Row-level security or schema-per-tenant isolation",
+        "Tokenization for card data (no direct storage)",
+        "Tenant-aware caching to prevent cross-tenant pollution"
+      ],
+      "expected_risks": [
+        "Noisy neighbor performance degradation",
+        "Compliance violation from inadequate data isolation"
+      ],
+      "relevant_challenge_scenarios": [
+        "database_unavailable",
+        "traffic_spike_20x"
+      ]
+    },
+    {
+      "id": "BK-001",
+      "domain": "banking_payment",
+      "name": "Real-Time Payment Processing System",
+      "requirement": "Build a payment processing platform handling 10,000 transactions per second with ACID guarantees. Transactions must be idempotent, auditable, and fraud-screened within 100ms. Integrate with 5 bank networks. Require 99.999% availability.",
+      "expected_concerns": [
+        "ACID transaction guarantee at high throughput",
+        "Idempotency enforcement to prevent duplicate charges",
+        "Fraud detection latency within transaction critical path",
+        "Regulatory audit trail immutability"
+      ],
+      "expected_decisions": [
+        "Event sourcing for immutable audit ledger",
+        "Idempotency keys stored in distributed cache",
+        "Async fraud scoring with synchronous fallback",
+        "Multi-region active-active deployment"
+      ],
+      "expected_risks": [
+        "Dual-write inconsistency on network partition",
+        "Fraud model false-negative rate causing financial loss",
+        "Regulatory non-compliance from audit log gaps"
+      ],
+      "relevant_challenge_scenarios": [
+        "payment_success_order_fail",
+        "database_unavailable",
+        "downstream_service_slow"
+      ]
+    },
+    {
+      "id": "BK-002",
+      "domain": "banking_payment",
+      "name": "Digital Wallet & Transfer System",
+      "requirement": "Design a digital wallet platform allowing peer-to-peer transfers between 20 million registered users with sub-second settlement. Support multi-currency and real-time balance calculation. Require KYC verification integration.",
+      "expected_concerns": [
+        "Distributed ledger consistency on concurrent transfers",
+        "Multi-currency exchange rate precision",
+        "KYC provider latency in registration flow"
+      ],
+      "expected_decisions": [
+        "Optimistic locking for balance updates",
+        "Separate read replicas for balance inquiry",
+        "Asynchronous KYC verification with interim state"
+      ],
+      "expected_risks": [
+        "Negative balance on concurrent withdrawal",
+        "Exchange rate stale data causing incorrect settlement"
+      ],
+      "relevant_challenge_scenarios": [
+        "database_unavailable",
+        "payment_success_order_fail",
+        "downstream_service_slow"
+      ]
+    },
+    {
+      "id": "SM-001",
+      "domain": "social_media",
+      "name": "Social Media Feed Platform",
+      "requirement": "Build a social platform supporting 50 million users with a personalized news feed, 1 billion daily active posts, real-time likes/comments, direct messaging, and content moderation. Feed generation must respond in under 300ms.",
+      "expected_concerns": [
+        "Fan-out write amplification for celebrity users",
+        "Feed ranking latency requirements",
+        "Real-time event propagation at billion-post scale",
+        "Content moderation pipeline throughput"
+      ],
+      "expected_decisions": [
+        "Pull-based feed for high-follower accounts, push for normal",
+        "Graph database for social connections",
+        "Eventual consistency for like/comment counters",
+        "Async content moderation queue"
+      ],
+      "expected_risks": [
+        "Fan-out queue backlog causing feed staleness",
+        "Harmful content visible during moderation lag"
+      ],
+      "relevant_challenge_scenarios": [
+        "traffic_spike_20x",
+        "message_broker_unavailable",
+        "redis_unavailable"
+      ]
+    },
+    {
+      "id": "HC-001",
+      "domain": "healthcare",
+      "name": "Electronic Health Records System",
+      "requirement": "Design a HIPAA-compliant EHR system for 500 hospitals with 10 million patient records. Support clinical decision support, medication management, and real-time lab result integration. All data must be encrypted at rest and in transit. Audit logs required for every record access.",
+      "expected_concerns": [
+        "HIPAA compliance for PHI data handling",
+        "Encryption key management at scale",
+        "Comprehensive audit logging for all PHI access",
+        "High availability for clinical-critical operations"
+      ],
+      "expected_decisions": [
+        "Field-level encryption for PII/PHI fields",
+        "Immutable append-only audit log (write-once storage)",
+        "Role-based access control with minimum necessary principle",
+        "Break-glass emergency access procedure"
+      ],
+      "expected_risks": [
+        "PHI data breach due to insufficient access controls",
+        "Clinical decision system unavailability causing patient harm",
+        "Audit log tampering compromising compliance evidence"
+      ],
+      "relevant_challenge_scenarios": [
+        "database_unavailable",
+        "app_service_crash",
+        "downstream_service_slow"
+      ]
+    },
+    {
+      "id": "HC-002",
+      "domain": "healthcare",
+      "name": "Telemedicine Video Consultation Platform",
+      "requirement": "Build a telemedicine platform supporting 100,000 concurrent video consultations with end-to-end encryption, session recording for medical compliance, and integration with pharmacy and insurance systems. Require GDPR and HIPAA compliance.",
+      "expected_concerns": [
+        "Media server capacity for 100k concurrent streams",
+        "End-to-end encryption key exchange",
+        "Recording storage and retention compliance",
+        "Network quality degradation handling"
+      ],
+      "expected_decisions": [
+        "WebRTC for peer-to-peer video with TURN server fallback",
+        "Separate media recording pipeline from live stream",
+        "Session-based ephemeral encryption keys"
+      ],
+      "expected_risks": [
+        "Regulatory violation from unencrypted session recordings",
+        "TURN server bottleneck under high concurrent load"
+      ],
+      "relevant_challenge_scenarios": [
+        "traffic_spike_20x",
+        "downstream_service_slow"
+      ]
+    },
+    {
+      "id": "LG-001",
+      "domain": "logistics",
+      "name": "Global Supply Chain Tracking System",
+      "requirement": "Build a logistics tracking platform for 1 million active shipments across 150 countries. Support real-time location updates from IoT devices every 30 seconds, customs clearance integrations, and SLA breach alerts.",
+      "expected_concerns": [
+        "High-frequency IoT write throughput",
+        "Global latency for 150-country coverage",
+        "Third-party customs API reliability",
+        "SLA breach detection at stream processing layer"
+      ],
+      "expected_decisions": [
+        "Time-series database for shipment location events",
+        "Stream processing (Kafka Streams/Flink) for SLA monitoring",
+        "Multi-region deployment with CDN for API responses",
+        "Circuit breaker for customs API integrations"
+      ],
+      "expected_risks": [
+        "IoT device clock drift causing event ordering issues",
+        "Customs API downtime blocking clearance workflow"
+      ],
+      "relevant_challenge_scenarios": [
+        "downstream_service_slow",
+        "message_broker_unavailable",
+        "database_unavailable"
+      ]
+    },
+    {
+      "id": "LG-002",
+      "domain": "logistics",
+      "name": "Last-Mile Delivery Optimization",
+      "requirement": "Design a delivery route optimization system for 10,000 delivery drivers with real-time traffic integration, dynamic re-routing, and proof-of-delivery capture. Target 98% on-time delivery rate.",
+      "expected_concerns": [
+        "Route optimization algorithm latency",
+        "Real-time traffic data API reliability",
+        "Offline capability for drivers in low-connectivity zones"
+      ],
+      "expected_decisions": [
+        "Hybrid online/offline mobile app architecture",
+        "Async route recalculation triggered by traffic events",
+        "Event sourcing for proof-of-delivery chain of custody"
+      ],
+      "expected_risks": [
+        "Optimization service unavailability degrading delivery SLA",
+        "Offline data sync conflicts on reconnection"
+      ],
+      "relevant_challenge_scenarios": [
+        "downstream_service_slow",
+        "app_service_crash"
+      ]
+    },
+    {
+      "id": "ST-001",
+      "domain": "streaming",
+      "name": "Video Streaming Platform",
+      "requirement": "Build a video streaming service supporting 10 million concurrent viewers with adaptive bitrate streaming, content personalization, and global CDN delivery. Support 4K content and require less than 2-second startup latency.",
+      "expected_concerns": [
+        "Origin server throughput for 10M concurrent streams",
+        "CDN cache miss cost during content launches",
+        "Adaptive bitrate algorithm performance",
+        "Content protection (DRM) latency"
+      ],
+      "expected_decisions": [
+        "Multi-CDN strategy for global coverage",
+        "Pre-warm CDN on scheduled content releases",
+        "Widevine/FairPlay DRM integration",
+        "Separate recommendation microservice with async ML updates"
+      ],
+      "expected_risks": [
+        "CDN provider outage causing global service unavailability",
+        "DRM license server latency exceeding startup budget"
+      ],
+      "relevant_challenge_scenarios": [
+        "traffic_spike_20x",
+        "downstream_service_slow"
+      ]
+    },
+    {
+      "id": "ST-002",
+      "domain": "streaming",
+      "name": "Live Events Streaming Platform",
+      "requirement": "Design a live sports/event streaming platform handling 5 million simultaneous viewers per event with sub-10 second stream latency and real-time chat. Require viewer authentication and pay-per-view access control.",
+      "expected_concerns": [
+        "Flash crowd spike at event start time",
+        "Low-latency streaming vs CDN cache compatibility",
+        "Real-time chat message fan-out at scale"
+      ],
+      "expected_decisions": [
+        "WebRTC or CMAF-LL for low latency live segments",
+        "Separate scalable chat service from video pipeline",
+        "Pre-scaling infrastructure 30 minutes before event"
+      ],
+      "expected_risks": [
+        "Inadequate pre-scaling causing event start service degradation",
+        "CDN cache invalidation lag during live stream recovery"
+      ],
+      "relevant_challenge_scenarios": [
+        "traffic_spike_20x",
+        "app_service_crash",
+        "message_broker_unavailable"
+      ]
+    },
+    {
+      "id": "ED-001",
+      "domain": "education",
+      "name": "Online Learning Management System",
+      "requirement": "Build an LMS supporting 2 million students with live video classes, quizzes with automatic grading, progress tracking, and certificate generation. Integrate with Zoom for live sessions. Require accessibility compliance (WCAG 2.1 AA).",
+      "expected_concerns": [
+        "Synchronous video integration with third-party provider",
+        "Auto-grading accuracy and latency",
+        "Certificate generation and fraud prevention"
+      ],
+      "expected_decisions": [
+        "Third-party video integration via webhook-driven session management",
+        "Background worker queue for certificate generation",
+        "Separate read model for progress dashboards (CQRS)"
+      ],
+      "expected_risks": [
+        "Video provider downtime during scheduled live sessions",
+        "Auto-grading engine errors affecting student records"
+      ],
+      "relevant_challenge_scenarios": [
+        "downstream_service_slow",
+        "app_service_crash"
+      ]
+    },
+    {
+      "id": "ED-002",
+      "domain": "education",
+      "name": "Adaptive Learning AI Platform",
+      "requirement": "Design an AI-powered adaptive learning platform that personalizes curriculum paths for 500,000 learners in real-time based on performance and engagement signals. Integrate ML model inference within the question delivery loop.",
+      "expected_concerns": [
+        "ML inference latency within interactive user flow",
+        "Model retraining without downtime",
+        "Personalization data privacy (FERPA/COPPA for minors)"
+      ],
+      "expected_decisions": [
+        "Async ML model scoring with cached recommendations",
+        "Shadow deployment for model canary rollouts",
+        "Differential privacy for training data aggregation"
+      ],
+      "expected_risks": [
+        "Model bias leading to discriminatory learning paths",
+        "Inference service latency spike degrading user experience"
+      ],
+      "relevant_challenge_scenarios": [
+        "downstream_service_slow",
+        "redis_unavailable"
+      ]
+    },
+    {
+      "id": "SA-001",
+      "domain": "saas",
+      "name": "Multi-Tenant SaaS CRM Platform",
+      "requirement": "Build a multi-tenant CRM SaaS platform for 10,000 enterprise customers with custom workflows, email automation (5 million emails/day), and Salesforce/HubSpot integrations. Require SOC 2 Type II compliance.",
+      "expected_concerns": [
+        "Multi-tenant data isolation with SOC 2 compliance",
+        "Email sending throughput and delivery rate",
+        "Noisy neighbor resource contention between tenants",
+        "Integration reliability with external CRM systems"
+      ],
+      "expected_decisions": [
+        "Tenant namespace isolation with per-tenant encryption keys",
+        "Dedicated email sending infrastructure with IP warming",
+        "Per-tenant rate limiting and resource quotas",
+        "Circuit breaker for external CRM API integrations"
+      ],
+      "expected_risks": [
+        "Email deliverability degradation from shared IP reputation",
+        "Data leakage across tenant boundaries"
+      ],
+      "relevant_challenge_scenarios": [
+        "downstream_service_slow",
+        "database_unavailable",
+        "message_broker_unavailable"
+      ]
+    },
+    {
+      "id": "SA-002",
+      "domain": "saas",
+      "name": "Developer Platform & API Gateway",
+      "requirement": "Design a developer API platform offering 20 core APIs to third-party developers. Support 500 million API calls/day, granular per-API-key rate limiting, usage analytics, and billing by consumption. Require SLA of 99.95% for premium tier.",
+      "expected_concerns": [
+        "Rate limiting at billion-API-call scale",
+        "Per-key usage metering accuracy for billing",
+        "API versioning and backward compatibility",
+        "DDoS protection at ingress layer"
+      ],
+      "expected_decisions": [
+        "Distributed token bucket in Redis for per-key rate limiting",
+        "Kafka-based event stream for usage metering",
+        "API gateway abstraction layer for versioning",
+        "Anycast DDoS mitigation at edge"
+      ],
+      "expected_risks": [
+        "Metering data loss causing billing inaccuracies",
+        "Rate limiter Redis SPOF allowing quota bypass"
+      ],
+      "relevant_challenge_scenarios": [
+        "redis_unavailable",
+        "traffic_spike_20x",
+        "message_broker_unavailable"
+      ]
+    },
+    {
+      "id": "IOT-001",
+      "domain": "iot",
+      "name": "Smart City IoT Data Platform",
+      "requirement": "Build an IoT data ingestion and analytics platform for a smart city with 500,000 connected sensors (traffic, air quality, energy). Ingest 1 million events per second, store 5 years of historical data, and provide real-time dashboards.",
+      "expected_concerns": [
+        "1M events/second ingestion throughput",
+        "Time-series data storage efficiency for 5-year retention",
+        "Real-time aggregation latency for dashboards",
+        "Device authentication at scale"
+      ],
+      "expected_decisions": [
+        "Apache Kafka for high-throughput event ingestion",
+        "TimescaleDB or InfluxDB for time-series storage",
+        "Stream processing for real-time aggregations",
+        "mTLS device authentication at IoT gateway"
+      ],
+      "expected_risks": [
+        "Sensor data flood causing Kafka consumer lag",
+        "Cascading failure if stream processing falls behind"
+      ],
+      "relevant_challenge_scenarios": [
+        "message_broker_unavailable",
+        "database_unavailable",
+        "traffic_spike_20x"
+      ]
+    },
+    {
+      "id": "IOT-002",
+      "domain": "iot",
+      "name": "Industrial Equipment Monitoring System",
+      "requirement": "Design a predictive maintenance system for 10,000 industrial machines generating sensor data every 100ms. Detect anomalies in real-time and trigger maintenance alerts within 30 seconds of anomaly detection. Require offline operation during network outages.",
+      "expected_concerns": [
+        "Edge processing for sub-second anomaly detection",
+        "Offline data buffering during connectivity loss",
+        "Alert fatigue from high false-positive ML models",
+        "Secure OTA firmware updates for edge devices"
+      ],
+      "expected_decisions": [
+        "Edge compute (fog computing) for local anomaly detection",
+        "Store-and-forward buffer on edge devices",
+        "Dual-layer anomaly detection (edge + cloud ML)",
+        "Signed firmware updates over TLS"
+      ],
+      "expected_risks": [
+        "Data loss during extended network partition",
+        "ML model drift causing missed anomaly detections"
+      ],
+      "relevant_challenge_scenarios": [
+        "downstream_service_slow",
+        "app_service_crash",
+        "database_unavailable"
+      ]
+    },
+    {
+      "id": "GEN-001",
+      "domain": "general",
+      "name": "Generic Microservices Migration",
+      "requirement": "Migrate an existing monolithic Java Spring Boot application serving 20,000 daily users to a microservices architecture. The monolith handles user management, product catalog, order processing, and reporting. Require zero-downtime migration and backward compatibility.",
+      "expected_concerns": [
+        "Distributed transaction management replacing monolith transactions",
+        "Data ownership boundary definition between services",
+        "Strangler fig migration risks",
+        "Service mesh communication overhead"
+      ],
+      "expected_decisions": [
+        "Strangler fig pattern for incremental decomposition",
+        "Saga pattern to replace cross-module transactions",
+        "API gateway for backward-compatible routing",
+        "Shared database elimination through database-per-service"
+      ],
+      "expected_risks": [
+        "Increased operational complexity from 1 to N services",
+        "Network latency regression compared to in-process calls"
+      ],
+      "relevant_challenge_scenarios": [
+        "app_service_crash",
+        "downstream_service_slow",
+        "database_unavailable"
+      ]
+    }
+  ]
+}

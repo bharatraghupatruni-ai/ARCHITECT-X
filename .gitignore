@@ -1,0 +1,78 @@
+# =============================================================================
+# ARCHITECT-X — .gitignore
+# =============================================================================
+
+# ---- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---- Node / Next.js ---------------------------------------------------------
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---- Environment & Secrets --------------------------------------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# .env.example is intentionally tracked — it has no real secrets
+
+# ---- Databases & Local Volumes ----------------------------------------------
+*.db
+*.sqlite3
+postgres_data/
+
+# ---- Vector Store -----------------------------------------------------------
+chroma_db/
+*.faiss
+*.pkl
+
+# ---- Evaluation Outputs (generated, not source) ----------------------------
+evaluation/results.json
+evaluation/results.csv
+
+# ---- IDE / OS ---------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---- Alembic auto-generated (keep tracked) ----------------------------------
+# backend/alembic/versions/ is intentionally tracked
+
+# ---- Build / Distribution ---------------------------------------------------
+*.tar.gz
+*.zip
