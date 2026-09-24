@@ -81,8 +81,8 @@ export function ExplainabilityView({
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-6 border-b border-surface-50 relative z-10">
         <div className="space-y-1.5">
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-indigo-950/80 border border-indigo-700/60 text-indigo-300">
-              Phase 6 Explainability Engine
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 border border-indigo-200 text-indigo-700">
+              Architecture Decisions & Blueprint
             </span>
             <span className="text-xs text-slate-400 font-mono">
               {projectName ? `Project: ${projectName}` : "Architectural Blueprints"}
@@ -225,7 +225,7 @@ export function ExplainabilityView({
             <div className="flex items-center justify-center sm:justify-start space-x-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <h4 className="text-sm font-bold text-white font-mono">
-                Proceed to Phase 7 — Final Architecture Workspace & Traceability
+                Proceed to Architecture Workspace & Traceability
               </h4>
             </div>
             <p className="text-xs text-slate-300">

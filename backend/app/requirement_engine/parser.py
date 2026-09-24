@@ -66,8 +66,14 @@ class RequirementParser:
                     raise RuntimeError(f"LLM API request failed with status {response.status_code}: {response.text}")
 
                 data = response.json()
-                content = data["choices"][0]["message"]["content"]
-                parsed_json = json.loads(content)
+                content = data["choices"][0]["message"]["content"].strip()
+                if "```" in content:
+                    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", content)
+                    if match:
+                        content = match.group(1).strip()
+                raw_json = json.loads(content)
+                # Defensive normalization for cross-model LLM compatibility
+                parsed_json = self._normalize_llm_json(raw_json)
 
                 # Validate with Pydantic
                 analysis = RequirementAnalysis.model_validate(parsed_json)
@@ -90,6 +96,45 @@ class RequirementParser:
                     payload["messages"] = messages
 
         raise RuntimeError(f"Failed to generate valid requirement analysis from LLM: {last_error}")
+
+    def _normalize_llm_json(self, data: Any) -> Dict[str, Any]:
+        """Defensive normalization ensuring raw LLM outputs match RequirementAnalysis schema."""
+        if not isinstance(data, dict):
+            return {}
+        list_fields = [
+            'functional_requirements', 'non_functional_requirements', 'constraints',
+            'priorities', 'external_integrations', 'data_requirements', 'assumptions',
+            'ambiguities', 'missing_information'
+        ]
+        for field in list_fields:
+            if field in data and isinstance(data[field], list):
+                normalized_list = []
+                for item in data[field]:
+                    if isinstance(item, dict):
+                        text = item.get('description') or item.get('name') or item.get('requirement') or item.get('text') or str(item)
+                        req_id = item.get('id')
+                        if req_id and not str(text).startswith(str(req_id)):
+                            text = f"{req_id}: {text}"
+                        normalized_list.append(str(text))
+                    elif isinstance(item, str):
+                        normalized_list.append(item)
+                    else:
+                        normalized_list.append(str(item))
+                data[field] = normalized_list
+
+        if 'domain' not in data or not data['domain']:
+            data['domain'] = 'unknown'
+        if 'system_type' not in data or not data['system_type']:
+            data['system_type'] = 'web_application'
+
+        if 'confidence' not in data or data['confidence'] is None:
+            data['confidence'] = 0.85
+        elif not isinstance(data['confidence'], (int, float)):
+            try:
+                data['confidence'] = float(data['confidence'])
+            except Exception:
+                data['confidence'] = 0.85
+        return data
 
     def _mock_analyze(self, text: str) -> RequirementAnalysis:
         """Deterministic, rule-based mock engine used in test / mock development modes."""

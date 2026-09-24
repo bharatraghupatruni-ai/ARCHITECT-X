@@ -1,81 +1,132 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Loader2, Cpu, ShieldCheck, Zap, CheckCircle2 } from "lucide-react";
+import { Loader2, Cpu, ShieldCheck, Zap, Activity, Check } from "lucide-react";
+import { StatusBadge } from "./ui/StatusBadge";
 
-export function AgentRunningState() {
-  const [activeSeconds, setActiveSeconds] = useState(0);
+interface AgentRunningStateProps {
+  elapsedSeconds?: number;
+}
+
+export function AgentRunningState({ elapsedSeconds: initialElapsed = 0 }: AgentRunningStateProps) {
+  const [seconds, setSeconds] = useState(initialElapsed);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveSeconds((prev) => prev + 1);
+    const interval = setInterval(() => {
+      setSeconds((prev) => prev + 1);
     }, 1000);
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="bg-surface-200/95 border border-indigo-500/40 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-indigo-500/10 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-surface-50">
-        <div className="flex items-center space-x-3">
-          <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
-          <h3 className="text-base sm:text-lg font-bold text-white font-mono">
-            Executing Multi-Agent Architecture Review...
-          </h3>
+    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 font-sans flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+            <span>Multi-Agent Architecture Review</span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5 font-sans">
+            Evaluating service decomposition, zero-trust security boundaries, and high-concurrency reliability independently.
+          </p>
         </div>
-        <span className="text-xs font-mono text-slate-400 bg-surface-300 px-3 py-1 rounded-full border border-surface-50">
-          Elapsed: {activeSeconds}s • Concurrent Dispatch (3 Agents)
-        </span>
+
+        <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-50 border border-slate-200 px-3 py-1 rounded-md text-xs text-slate-600 font-sans">
+          <Activity className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+          <span>Elapsed: {seconds}s</span>
+        </div>
       </div>
 
+      {/* 3 Equal Agent Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Architecture Agent */}
-        <div className="bg-surface-300/80 border border-indigo-500/30 p-4 rounded-xl space-y-2">
-          <div className="flex items-center space-x-2 text-indigo-400 font-mono text-xs font-semibold">
-            <Cpu className="w-4 h-4 animate-pulse" />
-            <span>Architecture Agent</span>
+        <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-5 space-y-3 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-indigo-50 text-indigo-700">
+                <Cpu className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase text-slate-900 font-sans">
+                  Architecture Agent
+                </h3>
+                <span className="text-[11px] text-slate-500 font-sans">
+                  Senior Software Architect
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Evaluating service boundaries, domain decomposition, and ACID persistence paradigms...
+
+          <p className="text-xs text-slate-600 font-sans leading-relaxed">
+            Formulating service boundaries, domain decomposition, and persistence topology.
           </p>
-          <div className="flex items-center space-x-1.5 text-[11px] font-mono text-indigo-300/80 pt-1">
-            <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
-            <span>Formulating topology proposal</span>
+
+          <div className="pt-2 border-t border-slate-200/80 flex items-center gap-2 text-xs text-indigo-700 font-sans font-medium">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Analyzing system boundaries...</span>
           </div>
         </div>
 
         {/* Security Agent */}
-        <div className="bg-surface-300/80 border border-emerald-500/30 p-4 rounded-xl space-y-2">
-          <div className="flex items-center space-x-2 text-emerald-400 font-mono text-xs font-semibold">
-            <ShieldCheck className="w-4 h-4 animate-pulse" />
-            <span>Security Agent</span>
+        <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-5 space-y-3 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-emerald-50 text-emerald-700">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase text-slate-900 font-sans">
+                  Security Agent
+                </h3>
+                <span className="text-[11px] text-slate-500 font-sans">
+                  Application Security Architect
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Modeling zero-trust identity, OAuth2/OIDC, mTLS attestation, and data encryption at rest...
+
+          <p className="text-xs text-slate-600 font-sans leading-relaxed">
+            Modeling zero-trust identity, OAuth2/OIDC, mTLS attestation, and data encryption.
           </p>
-          <div className="flex items-center space-x-1.5 text-[11px] font-mono text-emerald-300/80 pt-1">
-            <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
-            <span>Analyzing threat vectors</span>
+
+          <div className="pt-2 border-t border-slate-200/80 flex items-center gap-2 text-xs text-emerald-700 font-sans font-medium">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Evaluating threat vectors...</span>
           </div>
         </div>
 
-        {/* Performance Agent */}
-        <div className="bg-surface-300/80 border border-amber-500/30 p-4 rounded-xl space-y-2">
-          <div className="flex items-center space-x-2 text-amber-400 font-mono text-xs font-semibold">
-            <Zap className="w-4 h-4 animate-pulse" />
-            <span>Performance & Reliability</span>
+        {/* Performance & Reliability Agent */}
+        <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-5 space-y-3 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-amber-50 text-amber-700">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase text-slate-900 font-sans">
+                  Performance Agent
+                </h3>
+                <span className="text-[11px] text-slate-500 font-sans">
+                  Distributed Systems & Reliability
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Calculating latency budgets, multi-tier caching (Redis), message queuing, and circuit breakers...
+
+          <p className="text-xs text-slate-600 font-sans leading-relaxed">
+            Calculating P99 latency budgets, caching tiers, event streaming, and failover paths.
           </p>
-          <div className="flex items-center space-x-1.5 text-[11px] font-mono text-amber-300/80 pt-1">
-            <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-            <span>Engineering bottleneck mitigations</span>
+
+          <div className="pt-2 border-t border-slate-200/80 flex items-center gap-2 text-xs text-amber-700 font-sans font-medium">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Evaluating scalability...</span>
           </div>
         </div>
       </div>
 
-      <p className="text-[11px] text-slate-500 font-mono text-center pt-2">
-        Independent Agent Execution Rule — No agent communicates with or biases another agent.
+      <p className="text-xs text-slate-400 font-sans text-center">
+        Independent Evaluation — No agent communicates with or biases another agent during analysis.
       </p>
     </div>
   );

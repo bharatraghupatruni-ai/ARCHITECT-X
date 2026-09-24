@@ -54,11 +54,8 @@ export function ExplainabilityLoadingState() {
             <Sparkles className="w-5 h-5 animate-spin" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white font-mono flex items-center space-x-2">
+            <h3 className="text-base font-bold text-white flex items-center space-x-2">
               <span>Decision & Explainability Engine Active</span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-950 border border-indigo-700/60 text-indigo-300">
-                Phase 6
-              </span>
             </h3>
             <p className="text-xs text-slate-400 font-mono">
               Generating MADR Architecture Records & 3-Tier C4 Visual Topology...

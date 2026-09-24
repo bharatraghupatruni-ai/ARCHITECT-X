@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional
 import httpx
 
@@ -275,6 +276,47 @@ CRITICAL ADJUDICATION RULES:
         conflicts_payload = [c.model_dump(mode="json") for c in conflicts]
         evidence_payload = [e.model_dump(mode="json") for e in (evidence or [])]
 
+        schema_example = json.dumps({
+            "summary": "Detailed executive architectural review synthesis.",
+            "overall_verdict": "APPROVED WITH CONDITIONS",
+            "key_findings": ["Key finding 1", "Key finding 2", "Key finding 3"],
+            "adjudicated_decisions": [
+                {
+                    "category": "Decision Dimension (e.g. Database Paradigm & Storage, Inter-Service Communication, Event Streaming)",
+                    "chosen_option": "PostgreSQL with PgBouncer Connection Pooling",
+                    "rejected_options": ["MongoDB", "Direct unpooled SQL"],
+                    "rationale": "Grounded justification citing consistency and scale",
+                    "trade_offs": ["Operational overhead of pooler proxy"],
+                    "assigned_to_components": ["Order Service", "Payment Service"],
+                    "review_status": "approved",
+                    "evidence_used": True,
+                    "evidence_sources": ["postgresql_architecture.md"],
+                    "evidence_summary": "Summary of evidence substantiating this choice",
+                    "evidence_confidence": 0.95
+                }
+            ],
+            "trade_off_analysis": [
+                {
+                    "name": "Security vs. Latency",
+                    "category": "Transport & Security",
+                    "pros": ["Mutual cryptographic identity"],
+                    "cons": ["Handshake overhead"],
+                    "recommendation": "Use persistent HTTP/2 connection pooling with mTLS",
+                    "impact_score": "High"
+                }
+            ],
+            "synthesis_risks": [
+                {
+                    "title": "Connection Exhaustion Under Spike",
+                    "category": "scalability",
+                    "severity": "high",
+                    "description": "Risk details",
+                    "mitigation": "Mitigation steps"
+                }
+            ],
+            "action_items": ["Action item 1", "Action item 2"]
+        }, indent=2)
+
         user_content = (
             f"Please conduct an authoritative architectural review and synthesis of the following system requirement, agent evaluations, and empirical documentation evidence:\n\n"
             f"### Structured Requirement:\n"
@@ -285,7 +327,8 @@ CRITICAL ADJUDICATION RULES:
             f"{json.dumps(conflicts_payload, indent=2)}\n\n"
             f"### Retrieved Technical Literature & Empirical Evidence (RAG):\n"
             f"{json.dumps(evidence_payload, indent=2)}\n\n"
-            f"Synthesize these inputs, adjudicate all conflicting decisions without relying on majority vote, ground decisions in the technical documentation excerpts, and output strictly valid JSON conforming to the ReviewerOutput schema."
+            f"Synthesize these inputs, adjudicate all conflicting decisions without relying on majority vote, ground decisions in the technical documentation excerpts, and output strictly valid JSON matching this schema format:\n"
+            f"{schema_example}"
         )
 
         messages = [
@@ -312,8 +355,14 @@ CRITICAL ADJUDICATION RULES:
                     raise RuntimeError(f"ReviewerAgent LLM API error ({response.status_code}): {response.text}")
 
                 data = response.json()
-                content = data["choices"][0]["message"]["content"]
-                parsed_json = json.loads(content)
+                content = data["choices"][0]["message"]["content"].strip()
+                if "```" in content:
+                    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", content)
+                    if match:
+                        content = match.group(1).strip()
+                raw_json = json.loads(content)
+                # Defensive normalization for cross-model LLM compatibility
+                parsed_json = self._normalize_reviewer_output(raw_json)
 
                 output = ReviewerOutput.model_validate(parsed_json)
                 output.retrieved_evidence = evidence or []
@@ -335,3 +384,75 @@ CRITICAL ADJUDICATION RULES:
                     payload["messages"] = messages
 
         raise RuntimeError(f"ReviewerAgent failed to generate valid output: {last_error}")
+
+    def _normalize_reviewer_output(self, data: Any) -> dict:
+        """Defensive normalization ensuring raw LLM outputs conform to ReviewerOutput schema."""
+        if not isinstance(data, dict):
+            return {
+                "summary": "Architectural review and synthesis completed.",
+                "overall_verdict": "APPROVED WITH CONDITIONS",
+            }
+        if not data.get("summary"):
+            data["summary"] = "Architectural review completed by Principal Architect."
+        verdict = str(data.get("overall_verdict") or "APPROVED WITH CONDITIONS").upper()
+        if verdict not in ["APPROVED", "APPROVED WITH CONDITIONS", "REVISE ARCHITECTURE"]:
+            verdict = "APPROVED WITH CONDITIONS"
+        data["overall_verdict"] = verdict
+
+        for list_field in ["key_findings", "action_items"]:
+            if list_field in data and isinstance(data[list_field], list):
+                data[list_field] = [
+                    item if isinstance(item, str) else (item.get("text") or item.get("finding") or item.get("action") or str(item))
+                    for item in data[list_field]
+                ]
+
+        if "adjudicated_decisions" in data and isinstance(data["adjudicated_decisions"], list):
+            norm_decisions = []
+            for d in data["adjudicated_decisions"]:
+                if isinstance(d, dict):
+                    norm_decisions.append({
+                        "category": d.get("category") or d.get("dimension") or "Architecture",
+                        "chosen_option": d.get("chosen_option") or d.get("selected") or d.get("choice") or "Selected Technology",
+                        "rejected_options": d.get("rejected_options") or [],
+                        "rationale": d.get("rationale") or d.get("reason") or "Grounded in requirements and evidence",
+                        "trade_offs": d.get("trade_offs") or [],
+                        "assigned_to_components": d.get("assigned_to_components") or [],
+                        "review_status": d.get("review_status") or "approved",
+                        "evidence_used": bool(d.get("evidence_used")),
+                        "evidence_sources": d.get("evidence_sources") or [],
+                        "evidence_summary": d.get("evidence_summary"),
+                        "evidence_confidence": d.get("evidence_confidence"),
+                    })
+            data["adjudicated_decisions"] = norm_decisions
+
+        if "trade_off_analysis" in data and isinstance(data["trade_off_analysis"], list):
+            norm_tradeoffs = []
+            for t in data["trade_off_analysis"]:
+                if isinstance(t, dict):
+                    norm_tradeoffs.append({
+                        "name": t.get("name") or t.get("dimension") or "Architectural Trade-off",
+                        "category": t.get("category") or "General",
+                        "pros": t.get("pros") or [],
+                        "cons": t.get("cons") or [],
+                        "recommendation": t.get("recommendation") or "Pragmatic trade-off resolution",
+                        "impact_score": t.get("impact_score") or "High",
+                    })
+            data["trade_off_analysis"] = norm_tradeoffs
+
+        if "synthesis_risks" in data and isinstance(data["synthesis_risks"], list):
+            norm_risks = []
+            for r in data["synthesis_risks"]:
+                if isinstance(r, dict):
+                    sev = str(r.get("severity") or "medium").lower()
+                    if sev not in ["low", "medium", "high", "critical"]:
+                        sev = "medium"
+                    norm_risks.append({
+                        "title": r.get("title") or r.get("name") or "Synthesized Risk",
+                        "category": r.get("category") or "architecture",
+                        "severity": sev,
+                        "description": r.get("description") or "Potential architectural impact",
+                        "mitigation": r.get("mitigation") or "Apply architectural mitigation",
+                    })
+            data["synthesis_risks"] = norm_risks
+
+        return data

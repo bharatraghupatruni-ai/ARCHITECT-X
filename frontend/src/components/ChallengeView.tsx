@@ -6,6 +6,25 @@ import {
   ChallengeRunResponse,
   UnifiedArchitectureResponse,
 } from "@/lib/api";
+import { StatusBadge } from "./ui/StatusBadge";
+import { SectionHeader } from "./ui/SectionHeader";
+import {
+  Flame,
+  AlertTriangle,
+  ShieldCheck,
+  Zap,
+  ArrowRight,
+  CheckCircle2,
+  RefreshCw,
+  Loader2,
+  Database,
+  Radio,
+  Server,
+  Activity,
+  CreditCard,
+  Clock,
+  Wrench,
+} from "lucide-react";
 
 interface ChallengeViewProps {
   scenarios: ChallengeScenario[];
@@ -17,7 +36,60 @@ interface ChallengeViewProps {
   onSelectPastRun: (run: ChallengeRunResponse) => void;
 }
 
-export const ChallengeView: React.FC<ChallengeViewProps> = ({
+// 7 Consistent Backend Challenge Scenarios as Product Cards
+const SCENARIO_CARDS = [
+  {
+    id: "database_unavailable",
+    title: "Database Failure",
+    subtitle: "Primary database node crashes or experiences storage corruption during peak load.",
+    icon: Database,
+    category: "Infrastructure",
+  },
+  {
+    id: "redis_unavailable",
+    title: "Redis Failure",
+    subtitle: "Distributed cache cluster becomes unreachable due to network partition.",
+    icon: Zap,
+    category: "Infrastructure",
+  },
+  {
+    id: "traffic_spike_20x",
+    title: "20× Traffic Surge",
+    subtitle: "Traffic abruptly surges from baseline to 20× within 60 seconds.",
+    icon: Activity,
+    category: "Scalability",
+  },
+  {
+    id: "app_service_crash",
+    title: "Service Crash",
+    subtitle: "A core domain microservice experiences OOMKilled crash loop.",
+    icon: Server,
+    category: "Resilience",
+  },
+  {
+    id: "payment_success_order_fail",
+    title: "Payment / Order Failure",
+    subtitle: "Payment gateway charge succeeds, but subsequent order write fails.",
+    icon: CreditCard,
+    category: "Consistency",
+  },
+  {
+    id: "message_broker_unavailable",
+    title: "Broker Failure",
+    subtitle: "Message broker cluster loses quorum or disk fills up.",
+    icon: Radio,
+    category: "Messaging",
+  },
+  {
+    id: "downstream_service_slow",
+    title: "Downstream Slow",
+    subtitle: "External dependency latency degrades from 50ms to 8,000ms.",
+    icon: Clock,
+    category: "Latency",
+  },
+];
+
+export function ChallengeView({
   scenarios,
   activeRun,
   pastRuns,
@@ -25,392 +97,310 @@ export const ChallengeView: React.FC<ChallengeViewProps> = ({
   isRunning,
   onRunScenario,
   onSelectPastRun,
-}) => {
+}: ChallengeViewProps) {
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>(
-    activeRun?.scenario_id || (scenarios[0]?.id ?? "redis_unavailable")
+    activeRun?.scenario_id || "database_unavailable"
   );
 
-  const activeScenarioDef = scenarios.find((s) => s.id === selectedScenarioId) || scenarios[0];
   const result = activeRun?.result;
 
-  const getSeverityBadgeClass = (severity: string) => {
+  const handleSelectAndRun = (scenarioId: string) => {
+    setSelectedScenarioId(scenarioId);
+    onRunScenario(scenarioId);
+  };
+
+  const getSeverityVariant = (severity?: string) => {
     switch (severity?.toLowerCase()) {
       case "critical":
-        return "bg-red-500/20 text-red-300 border-red-500/40";
       case "high":
-        return "bg-amber-500/20 text-amber-300 border-amber-500/40";
+        return "danger" as const;
       case "medium":
-        return "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
-      case "low":
-        return "bg-blue-500/20 text-blue-300 border-blue-500/40";
+        return "warning" as const;
       default:
-        return "bg-slate-700/30 text-slate-300 border-slate-600/30";
+        return "info" as const;
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    if (category.includes("Infrastructure")) return "⚡";
-    if (category.includes("Load") || category.includes("Scale")) return "📈";
-    if (category.includes("Data") || category.includes("Inconsistency")) return "⚖️";
-    if (category.includes("Network") || category.includes("Latency")) return "🌐";
-    return "🛡️";
-  };
-
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Header Banner */}
-      <div className="relative rounded-2xl border border-red-500/30 bg-gradient-to-r from-red-950/40 via-slate-900/80 to-amber-950/30 p-6 md:p-8 backdrop-blur-xl shadow-2xl overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/30">
-                Phase 8 — Chaos & Resilience
-              </span>
-              <span className="text-xs text-slate-400 font-mono">
-                {pastRuns.length} Simulation{pastRuns.length === 1 ? "" : "s"} Run
-              </span>
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-              <span>Challenge My Architecture</span>
-              <span className="text-sm font-normal px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 font-mono">
-                AI Fault Injection
-              </span>
-            </h2>
-            <p className="text-slate-300 text-sm mt-1.5 max-w-2xl">
-              Stress-test synthesized system components against realistic failure, scale surge, and distributed data corruption scenarios with AI-grounded failure cascade analysis.
-            </p>
-          </div>
-
-          {/* Past Runs History Quick Switcher */}
-          {pastRuns.length > 0 && (
-            <div className="flex items-center gap-2 bg-slate-900/80 p-2 rounded-xl border border-slate-800 self-start md:self-auto">
-              <span className="text-xs text-slate-400 font-mono px-2">History:</span>
-              <select
-                value={activeRun?.id || ""}
-                onChange={(e) => {
-                  const found = pastRuns.find((r) => r.id === e.target.value);
-                  if (found) {
-                    setSelectedScenarioId(found.scenario_id);
-                    onSelectPastRun(found);
-                  }
-                }}
-                className="bg-slate-800 text-xs text-white rounded-lg px-3 py-1.5 border border-slate-700 focus:outline-none focus:ring-1 focus:ring-red-500 font-mono"
-              >
-                {pastRuns.map((run) => (
-                  <option key={run.id} value={run.id}>
-                    {run.result.scenario.name} ({new Date(run.created_at).toLocaleTimeString()})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Scenario Selection Grid */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>Select Failure or Scale Scenario</span>
-            <span className="text-xs text-slate-400 font-mono">({scenarios.length} available)</span>
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {scenarios.map((sc) => {
-            const isSelected = sc.id === selectedScenarioId;
-            const hasRun = pastRuns.some((r) => r.scenario_id === sc.id);
-
-            return (
-              <div
-                key={sc.id}
-                onClick={() => setSelectedScenarioId(sc.id)}
-                className={`relative flex flex-col justify-between p-4 rounded-xl border transition-all cursor-pointer text-left ${
-                  isSelected
-                    ? "bg-slate-800/90 border-red-500/80 shadow-lg shadow-red-500/10 ring-1 ring-red-500"
-                    : "bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50"
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-800 text-slate-300 border border-slate-700/60 flex items-center gap-1.5">
-                      <span>{getCategoryIcon(sc.category)}</span>
-                      <span>{sc.category}</span>
-                    </span>
-                    {hasRun && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        Evaluated
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="font-semibold text-white text-sm mb-1.5">{sc.name}</h4>
-                  <p className="text-xs text-slate-400 line-clamp-2 mb-3">{sc.description}</p>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-mono text-slate-500 truncate">
-                    {sc.expected_analysis_areas.length} Analysis Vectors
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedScenarioId(sc.id);
-                      onRunScenario(sc.id);
-                    }}
-                    disabled={isRunning}
-                    className={`text-xs px-3 py-1 rounded-lg font-medium transition-all ${
-                      isSelected
-                        ? "bg-gradient-to-r from-red-600 to-amber-600 text-white shadow-sm hover:brightness-110"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-                    } disabled:opacity-50`}
-                  >
-                    {isRunning && isSelected ? "Injecting..." : "Simulate →"}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Primary Active Simulation View */}
-      {result ? (
-        <div className="space-y-6">
-          {/* Active Scenario Card & Impact Overview */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl p-6 shadow-xl space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                    Active Scenario Simulation
-                  </span>
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${getSeverityBadgeClass(
-                      result.impact.severity
-                    )}`}
-                  >
-                    Severity: {result.impact.severity.toUpperCase()}
-                  </span>
-                </div>
-                <h3 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-                  <span>{result.scenario.name}</span>
-                </h3>
-                <p className="text-xs text-red-300/80 font-mono mt-1">
-                  Condition: {result.scenario.failure_condition}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => onRunScenario(result.scenario.id)}
-                  disabled={isRunning}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 flex items-center gap-2 transition-all disabled:opacity-50"
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-5">
+        <SectionHeader
+          title="Challenge Your Architecture"
+          description="Explore how your architecture behaves when something fails. Inject realistic chaos failure conditions and evaluate failure cascade propagation."
+          actions={
+            pastRuns.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-sans">Run History:</span>
+                <select
+                  value={activeRun?.id || ""}
+                  onChange={(e) => {
+                    const found = pastRuns.find((r) => r.id === e.target.value);
+                    if (found) {
+                      setSelectedScenarioId(found.scenario_id);
+                      onSelectPastRun(found);
+                    }
+                  }}
+                  className="text-xs font-sans bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
-                  <span>🔄 Re-evaluate Scenario</span>
-                </button>
+                  {pastRuns.map((r, i) => {
+                    const card = SCENARIO_CARDS.find((c) => c.id === r.scenario_id);
+                    return (
+                      <option key={r.id} value={r.id}>
+                        {card?.title || r.scenario_id} (Run #{pastRuns.length - i})
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
-            </div>
+            ) : undefined
+          }
+        />
 
-            {/* Impact Metric Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
-                <span className="text-xs font-mono text-slate-400 block mb-1">System Impact Summary</span>
-                <p className="text-sm font-medium text-slate-200">{result.impact.summary}</p>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
-                <span className="text-xs font-mono text-slate-400 block mb-1">Blast Radius & Scope</span>
-                <p className="text-sm font-medium text-slate-200">{result.impact.blast_radius}</p>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60">
-                <span className="text-xs font-mono text-slate-400 block mb-1">Persistent Data Loss Risk</span>
-                <p className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      result.impact.data_loss_risk.toLowerCase().includes("high")
-                        ? "bg-red-500"
-                        : "bg-emerald-400"
-                    }`}
-                  />
-                  <span>{result.impact.data_loss_risk}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Affected Architecture Components */}
-            <div>
-              <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-2.5">
-                Target Architecture Components Affected ({result.affected_components.length})
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {result.affected_components.map((comp, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-500/30 text-red-200 text-xs font-mono shadow-sm"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                    <span>{comp}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* 7 Scenario Product Cards Grid */}
+        <div className="space-y-3">
+          <div className="text-xs font-semibold text-slate-700 uppercase tracking-tight">
+            Select a Chaos Injection Scenario:
           </div>
 
-          {/* Failure Propagation Timeline */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <span>⏱️ Cascading Failure Propagation Timeline</span>
-            </h3>
-            <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-3 before:bottom-3 before:w-0.5 before:bg-gradient-to-b before:from-red-500 before:via-amber-500 before:to-emerald-500">
-              {result.failure_propagation.map((step, idx) => (
-                <div key={idx} className="relative group">
-                  <div className="absolute -left-[23px] top-1.5 w-3 h-3 rounded-full bg-slate-900 border-2 border-red-500 group-hover:scale-125 transition-transform" />
-                  <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60 text-xs md:text-sm text-slate-200 font-mono">
-                    {step}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {SCENARIO_CARDS.map((scenario) => {
+              const Icon = scenario.icon;
+              const isSelected = selectedScenarioId === scenario.id;
+              const hasRunBefore = pastRuns.some((r) => r.scenario_id === scenario.id);
 
-          {/* Safeguards vs Gaps Comparison Matrix */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Existing Safeguards */}
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/10 backdrop-blur-xl p-6 shadow-xl space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-emerald-500/20">
-                <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold">
-                  ✓
-                </span>
-                <h4 className="font-bold text-emerald-300 text-sm md:text-base">
-                  Active Architectural Safeguards
-                </h4>
-              </div>
-              <ul className="space-y-2.5">
-                {result.existing_safeguards.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 text-xs md:text-sm text-slate-200">
-                    <span className="text-emerald-400 flex-shrink-0 mt-0.5">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Identified Gaps */}
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-950/10 backdrop-blur-xl p-6 shadow-xl space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-amber-500/20">
-                <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs font-bold">
-                  ⚠️
-                </span>
-                <h4 className="font-bold text-amber-300 text-sm md:text-base">
-                  Identified Gaps & Vulnerabilities
-                </h4>
-              </div>
-              <ul className="space-y-2.5">
-                {result.identified_gaps.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 text-xs md:text-sm text-slate-200">
-                    <span className="text-amber-400 flex-shrink-0 mt-0.5">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Actionable Mitigations & Playbook */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <span>🛠️ Actionable Mitigation Playbook</span>
-            </h3>
-            <div className="space-y-3">
-              {result.mitigations.map((mit, idx) => (
+              return (
                 <div
-                  key={idx}
-                  className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60"
+                  key={scenario.id}
+                  onClick={() => !isRunning && handleSelectAndRun(scenario.id)}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer select-none space-y-2.5 flex flex-col justify-between ${
+                    isSelected && activeRun?.scenario_id === scenario.id
+                      ? "bg-slate-50 border-indigo-600 ring-1 ring-indigo-500/20 shadow-xs"
+                      : "bg-white border-slate-200 hover:border-slate-300 shadow-xs"
+                  } ${isRunning ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
-                  <span className="w-6 h-6 rounded-lg bg-red-500/20 text-red-300 flex items-center justify-center text-xs font-mono font-bold flex-shrink-0 mt-0.5">
-                    {idx + 1}
-                  </span>
-                  <div className="space-y-1">
-                    <p className="text-xs md:text-sm font-medium text-slate-200">{mit}</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`p-1.5 rounded-lg ${
+                            isSelected ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-900 font-sans">
+                          {scenario.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-sans">
+                        {scenario.category}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 font-sans leading-relaxed">
+                      {scenario.subtitle}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="text-slate-400 text-[11px]">
+                      {hasRunBefore ? "Evaluated" : "Not tested"}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isRunning}
+                      className={`font-semibold inline-flex items-center gap-1 ${
+                        isSelected ? "text-indigo-700" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      <span>Simulate</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Loading State when running simulation */}
+      {isRunning && (
+        <div className="bg-white border border-indigo-200 rounded-xl p-8 text-center space-y-3 shadow-xs">
+          <Loader2 className="w-7 h-7 animate-spin text-indigo-600 mx-auto" />
+          <h3 className="text-sm font-bold font-sans text-slate-900">
+            Simulating Chaos Fault Injection...
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Evaluating failure propagation cascades, testing component boundaries, and generating recovery mitigations.
+          </p>
+        </div>
+      )}
+
+      {/* Results View */}
+      {!isRunning && result && (
+        <div className="space-y-5">
+          {/* Scenario & Impact Summary */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <StatusBadge variant={getSeverityVariant(result.impact?.severity)} size="lg">
+                  {result.impact?.severity?.toUpperCase()} IMPACT
+                </StatusBadge>
+                <h3 className="text-sm font-bold text-slate-900 font-sans">
+                  {result.scenario?.name || "Simulation Result"}
+                </h3>
+              </div>
+              <div className="text-xs text-slate-500 font-sans">
+                Blast Radius: <strong className="text-slate-700">{result.impact?.blast_radius}</strong>
+              </div>
             </div>
 
-            {/* Evidence Used */}
-            {result.evidence_used && result.evidence_used.length > 0 && (
-              <div className="pt-4 border-t border-slate-800">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 block mb-2">
-                  Literature Grounding (RAG Evidence)
+            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-sans">
+              {result.impact?.summary}
+            </p>
+
+            {/* Direct Affected Components */}
+            {result.affected_components?.length > 0 && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">
+                <span className="text-[11px] font-semibold uppercase text-slate-600 block">
+                  Directly Affected Components:
                 </span>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {result.evidence_used.map((ev, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/40 text-xs font-mono text-slate-300"
+                <div className="flex flex-wrap gap-1.5">
+                  {result.affected_components.map((c, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 bg-rose-50 text-rose-800 border border-rose-200 rounded text-xs font-sans font-medium"
                     >
-                      <div className="flex items-center justify-between text-[11px] text-amber-400/90 mb-1">
-                        <span>📚 {ev.source}</span>
-                        <span>Score: {Math.round((ev.relevance_score || 0.9) * 100)}%</span>
-                      </div>
-                      <p className="line-clamp-2 text-slate-400 italic">"{ev.excerpt}"</p>
-                    </div>
+                      {c}
+                    </span>
                   ))}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Operational Recovery & Architecture Changes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Operational Recovery */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl p-6 shadow-xl space-y-3">
-              <h4 className="font-bold text-white text-sm md:text-base flex items-center gap-2">
-                <span>🔄 Operational Cluster Recovery Playbook</span>
-              </h4>
-              <p className="text-xs md:text-sm text-slate-300 font-mono leading-relaxed bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/60">
-                {result.recovery_strategy}
-              </p>
+          {/* 2-Column Split: Left (Cascade & Safeguards) vs Right (Gaps & Mitigation) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            {/* Left Column */}
+            <div className="space-y-4">
+              {/* Failure Propagation Chain */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3">
+                <h4 className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Failure Propagation Cascade</span>
+                </h4>
+                <div className="space-y-2">
+                  {result.failure_propagation?.map((step, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-sans text-slate-800 flex items-start gap-2.5"
+                    >
+                      <span className="font-bold text-rose-600 shrink-0 font-sans">
+                        {idx + 1}.
+                      </span>
+                      <span className="leading-relaxed">{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Current Safeguards */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3">
+                <h4 className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Current Architecture Safeguards</span>
+                </h4>
+                <div className="space-y-2">
+                  {result.existing_safeguards?.map((guard, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 bg-emerald-50/50 border border-emerald-200/80 rounded-lg text-xs font-sans text-emerald-950 flex items-start gap-2"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed">{guard}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Architecture Hardening Changes */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl p-6 shadow-xl space-y-3">
-              <h4 className="font-bold text-white text-sm md:text-base flex items-center gap-2">
-                <span>🧱 Architecture Hardening Modifications</span>
-              </h4>
-              <ul className="space-y-2">
-                {result.architecture_changes.map((change, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/60 text-xs md:text-sm text-slate-200"
-                  >
-                    <span className="text-red-400 font-bold">→</span>
-                    <span>{change}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Right Column */}
+            <div className="space-y-4">
+              {/* Identified Gaps */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3">
+                <h4 className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Identified Gaps & Vulnerabilities</span>
+                </h4>
+                <div className="space-y-2">
+                  {result.identified_gaps?.map((gap, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 bg-rose-50/50 border border-rose-200/80 rounded-lg text-xs font-sans text-rose-950 flex items-start gap-2"
+                    >
+                      <span className="text-rose-600 font-bold shrink-0">•</span>
+                      <span className="leading-relaxed">{gap}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mitigation & Recovery Strategy */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3">
+                <h4 className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Mitigation Playbook & Recovery</span>
+                </h4>
+                <div className="space-y-2 text-xs font-sans">
+                  {result.mitigations?.map((m, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+                    >
+                      <span className="font-semibold text-indigo-700 block mb-0.5">
+                        Mitigation Action {idx + 1}:
+                      </span>
+                      <span className="leading-relaxed">{m}</span>
+                    </div>
+                  ))}
+
+                  {result.recovery_strategy && (
+                    <div className="p-3 bg-indigo-50/60 border border-indigo-200 rounded-lg text-indigo-950">
+                      <span className="font-bold block mb-1">
+                        Recovery Plan:
+                      </span>
+                      <span className="leading-relaxed">{result.recovery_strategy}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        /* Empty State */
-        <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-12 text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center text-3xl mx-auto">
-            ⚡
-          </div>
-          <h3 className="text-xl font-bold text-white">No Simulation Run Yet</h3>
-          <p className="text-slate-400 text-sm max-w-md mx-auto">
-            Select one of the 7 failure or scale scenarios above and click "Simulate" to test your architecture's blast radius, failure cascades, and safeguards.
-          </p>
-          <button
-            onClick={() => onRunScenario(selectedScenarioId)}
-            disabled={isRunning}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 text-white font-semibold text-sm shadow-lg shadow-red-500/25 hover:brightness-110 transition-all disabled:opacity-50"
-          >
-            {isRunning ? "Simulating Fault..." : `Simulate ${activeScenarioDef.name} →`}
-          </button>
+
+          {/* Architecture Changes Required */}
+          {result.architecture_changes && result.architecture_changes.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3">
+              <h4 className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-slate-700" />
+                <span>Permanent Architecture Changes Recommended</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {result.architecture_changes.map((change, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-sans text-slate-800 flex items-start gap-2"
+                  >
+                    <span className="font-bold text-indigo-600 shrink-0">{idx + 1}.</span>
+                    <span>{change}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
-};
+}

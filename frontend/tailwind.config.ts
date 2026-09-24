@@ -10,32 +10,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#090D16",
+        background: "#FFFFFF",
         surface: {
-          50: "#1E293B",
-          100: "#161F30",
-          200: "#111827",
-          300: "#0D131F",
+          50: "#F8FAFC",
+          100: "#F1F5F9",
+          200: "#E2E8F0",
+          300: "#CBD5E1",
         },
         brand: {
           DEFAULT: "#4F46E5",
           hover: "#4338CA",
-          light: "#818CF8",
-          glow: "rgba(99, 102, 241, 0.15)",
-        },
-        accent: {
-          cyan: "#06B6D4",
-          emerald: "#10B981",
-          amber: "#F59E0B",
-          rose: "#F43F5E",
+          light: "#EEF2FF",
+          dark: "#3730A3",
+          border: "#C7D2FE",
         },
         border: {
-          subtle: "#1E293B",
-          muted: "#334155",
-          highlight: "#475569",
+          subtle: "#F1F5F9",
+          DEFAULT: "#E2E8F0",
+          muted: "#CBD5E1",
+          strong: "#94A3B8",
         }
       },
       fontFamily: {
+        sans: [
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Oxygen",
+          "Ubuntu",
+          "Cantarell",
+          "sans-serif",
+        ],
         mono: [
           "ui-monospace",
           "SFMono-Regular",
@@ -47,6 +54,11 @@ const config: Config = {
           "monospace",
         ],
       },
+      boxShadow: {
+        subtle: "0 1px 2px 0 rgba(0, 0, 0, 0.04)",
+        card: "0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
+        dropdown: "0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04)",
+      }
     },
   },
   plugins: [],

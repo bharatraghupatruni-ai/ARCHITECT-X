@@ -1,26 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
+import { ADRRecord, ADRExportResponse, api } from "@/lib/api";
 import {
-  ADRRecord,
-  ADRExportResponse,
-  api,
-} from "@/lib/api";
-import {
-  FileCode,
+  FileText,
   CheckCircle2,
   AlertTriangle,
-  Shield,
   BookOpen,
   Copy,
   Check,
   Download,
-  ChevronDown,
-  ChevronUp,
-  Filter,
   Search,
-  ExternalLink,
+  Filter,
+  ArrowUpRight,
 } from "lucide-react";
+import { StatusBadge } from "./ui/StatusBadge";
+import { Drawer } from "./ui/Drawer";
 
 interface ADRViewerProps {
   adrs: ADRRecord[];
@@ -30,14 +25,11 @@ interface ADRViewerProps {
 
 export function ADRViewer({ adrs, projectId, projectName }: ADRViewerProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [expandedAdrId, setExpandedAdrId] = useState<string | null>(adrs[0]?.id || null);
-  const [viewMode, setViewMode] = useState<Record<string, "structured" | "markdown">>({});
+  const [searchQuery, setSearchQuery] = useState<string>("" );
+  const [selectedAdr, setSelectedAdr] = useState<ADRRecord | null>(null);
   const [copiedAdrId, setCopiedAdrId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [exportSuccess, setExportSuccess] = useState<boolean>(false);
 
-  // Extract categories
   const categories = Array.from(new Set(adrs.map((a) => a.category))).filter(Boolean);
 
   const filteredAdrs = adrs.filter((adr) => {
@@ -70,8 +62,6 @@ export function ADRViewer({ adrs, projectId, projectName }: ADRViewerProps) {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
     } catch (err) {
       console.error("Failed to export ADR bundle:", err);
     } finally {
@@ -79,28 +69,22 @@ export function ADRViewer({ adrs, projectId, projectName }: ADRViewerProps) {
     }
   };
 
-  const toggleViewMode = (adrId: string) => {
-    setViewMode((prev) => ({
-      ...prev,
-      [adrId]: prev[adrId] === "markdown" ? "structured" : "markdown",
-    }));
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Top Filter and Action Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-xl bg-surface-100/70 border border-surface-50">
-        <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-          <div className="flex items-center space-x-1.5 text-xs font-mono text-slate-400 mr-2">
-            <Filter className="w-3.5 h-3.5 text-indigo-400" />
+    <div className="space-y-5">
+      {/* Top Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-mono text-slate-500 flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5 text-indigo-600" />
             <span>Category:</span>
-          </div>
+          </span>
           <button
+            type="button"
             onClick={() => setSelectedCategory("all")}
             className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
               selectedCategory === "all"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-surface-200 text-slate-400 hover:text-white"
+                ? "bg-indigo-600 text-white font-semibold"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
             }`}
           >
             All ({adrs.length})
@@ -108,11 +92,12 @@ export function ADRViewer({ adrs, projectId, projectName }: ADRViewerProps) {
           {categories.map((cat) => (
             <button
               key={cat}
+              type="button"
               onClick={() => setSelectedCategory(cat)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all capitalize ${
                 selectedCategory === cat
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-surface-200 text-slate-400 hover:text-white"
+                  ? "bg-indigo-600 text-white font-semibold"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
               }`}
             >
               {cat}
@@ -120,283 +105,246 @@ export function ADRViewer({ adrs, projectId, projectName }: ADRViewerProps) {
           ))}
         </div>
 
-        <div className="flex items-center space-x-3">
-          {/* Search box */}
-          <div className="relative flex-1 sm:w-48">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search ADRs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-surface-200/90 border border-surface-50 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+              placeholder="Search ADRs..."
+              className="w-full pl-9 pr-3 py-1.5 text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
 
-          {/* Export button */}
           <button
+            type="button"
             onClick={handleExportAll}
             disabled={isExporting}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/90 border border-indigo-700/60 text-indigo-300 text-xs font-mono transition-all flex-shrink-0 disabled:opacity-50"
-            title="Export all ADRs as a unified Markdown bundle"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-lg transition-colors shrink-0"
           >
-            {exportSuccess ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Bundle Downloaded</span>
-              </>
-            ) : isExporting ? (
-              <>
-                <Download className="w-3.5 h-3.5 animate-bounce" />
-                <span>Exporting...</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Export ADRs (.md)</span>
-              </>
-            )}
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Bundle</span>
           </button>
         </div>
       </div>
 
-      {/* ADR Records List */}
-      <div className="space-y-4">
-        {filteredAdrs.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-surface-100/40 border border-surface-50 text-slate-500 font-mono text-xs">
-            No Architecture Decision Records found matching your filter criteria.
-          </div>
-        ) : (
-          filteredAdrs.map((adr) => {
-            const isExpanded = expandedAdrId === adr.id;
-            const isMarkdown = viewMode[adr.id] === "markdown";
-            const isCopied = copiedAdrId === adr.id;
-
-            return (
-              <div
-                key={adr.id}
-                className={`rounded-xl border transition-all duration-200 overflow-hidden ${
-                  isExpanded
-                    ? "bg-surface-100/90 border-indigo-500/50 shadow-xl shadow-indigo-950/20"
-                    : "bg-surface-100/50 border-surface-50 hover:border-surface-50/80"
-                }`}
-              >
-                {/* Collapsible Header */}
-                <div
-                  onClick={() => setExpandedAdrId(isExpanded ? null : adr.id)}
-                  className="p-4 sm:p-5 flex items-start justify-between cursor-pointer select-none space-x-4"
-                >
-                  <div className="space-y-2 flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                      <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-indigo-950 border border-indigo-800/80 text-indigo-300">
-                        {adr.adr_id_formatted}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-surface-200 text-slate-300 border border-surface-50">
-                        {adr.category}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold ${
-                          adr.status.toLowerCase() === "accepted"
-                            ? "bg-emerald-950/80 text-emerald-400 border border-emerald-800/60"
-                            : "bg-amber-950/80 text-amber-400 border border-amber-800/60"
-                        }`}
-                      >
-                        {adr.status}
-                      </span>
-                      {adr.evidence_citations && adr.evidence_citations.length > 0 && (
-                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/70 border border-cyan-800/50 text-cyan-300">
-                          <BookOpen className="w-3 h-3 text-cyan-400" />
-                          <span>{adr.evidence_citations.length} Grounded Citations</span>
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-sm sm:text-base font-bold text-white font-mono leading-snug">
-                      {adr.title}
-                    </h3>
-                    <p className="text-xs text-slate-400 line-clamp-1 font-sans">
-                      {adr.decision}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center space-x-2 flex-shrink-0 pt-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopyMarkdown(adr.id, adr.markdown_content);
-                      }}
-                      className="p-1.5 rounded-lg bg-surface-200/80 hover:bg-surface-300 border border-surface-50 text-slate-400 hover:text-white transition-all"
-                      title="Copy ADR Markdown (MADR format)"
-                    >
-                      {isCopied ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                    <div className="text-slate-400 p-1">
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-indigo-400" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
-                    </div>
-                  </div>
+      {/* ADR Decision Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filteredAdrs.map((adr) => (
+          <div
+            key={adr.id}
+            className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between space-y-4"
+          >
+            <div className="space-y-3">
+              {/* Header */}
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                    {adr.adr_id_formatted}
+                  </span>
+                  <StatusBadge variant="neutral" size="sm">
+                    {adr.category}
+                  </StatusBadge>
                 </div>
+                <StatusBadge variant="success" size="sm">
+                  {adr.status}
+                </StatusBadge>
+              </div>
 
-                {/* Expanded Body */}
-                {isExpanded && (
-                  <div className="px-4 sm:px-6 pb-6 pt-2 border-t border-surface-50/80 space-y-6">
-                    {/* View Switcher: Structured UI vs Raw MADR Markdown */}
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-mono text-slate-400">
-                        Formalized MADR Architectural Specification
-                      </div>
-                      <button
-                        onClick={() => toggleViewMode(adr.id)}
-                        className="px-2.5 py-1 rounded bg-surface-200 hover:bg-surface-300 border border-surface-50 text-[11px] font-mono text-indigo-300 transition-all flex items-center space-x-1"
-                      >
-                        <FileCode className="w-3 h-3" />
-                        <span>{isMarkdown ? "Show Visual Breakdown" : "View Raw MADR (.md)"}</span>
-                      </button>
-                    </div>
+              {/* Title */}
+              <h3 className="text-sm font-bold text-slate-900 font-mono line-clamp-1">
+                {adr.title}
+              </h3>
 
-                    {isMarkdown ? (
-                      /* Raw MADR Markdown View */
-                      <div className="relative">
-                        <pre className="p-4 rounded-xl bg-surface-300/90 border border-surface-50 text-xs font-mono text-slate-200 whitespace-pre-wrap overflow-x-auto leading-relaxed max-h-96 overflow-y-auto">
-                          {adr.markdown_content}
-                        </pre>
-                        <button
-                          onClick={() => handleCopyMarkdown(adr.id, adr.markdown_content)}
-                          className="absolute top-3 right-3 px-2.5 py-1 rounded bg-surface-200 hover:bg-surface-100 border border-surface-50 text-[11px] font-mono text-slate-300 flex items-center space-x-1"
-                        >
-                          {isCopied ? (
-                            <>
-                              <Check className="w-3 h-3 text-emerald-400" />
-                              <span className="text-emerald-400">Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3 text-slate-400" />
-                              <span>Copy Markdown</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    ) : (
-                      /* Structured Visual Breakdown */
-                      <div className="space-y-5">
-                        {/* Context & Problem Statement */}
-                        <div className="space-y-1.5">
-                          <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                            Context & Problem Statement
-                          </h4>
-                          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed bg-surface-200/40 p-3.5 rounded-lg border border-surface-50/60 font-sans">
-                            {adr.context}
-                          </p>
-                        </div>
+              {/* Decision */}
+              <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-lg space-y-1">
+                <div className="text-[11px] font-mono font-semibold uppercase text-slate-500">
+                  Decision
+                </div>
+                <p className="text-xs text-slate-800 font-sans leading-relaxed line-clamp-2">
+                  {adr.decision}
+                </p>
+              </div>
 
-                        {/* Decision Outcome */}
-                        <div className="space-y-1.5">
-                          <h4 className="text-xs font-mono uppercase tracking-wider text-indigo-400 font-semibold">
-                            Decision Outcome
-                          </h4>
-                          <div className="p-3.5 rounded-lg bg-indigo-950/30 border border-indigo-800/40 text-xs sm:text-sm text-indigo-100 font-sans leading-relaxed">
-                            {adr.decision}
-                          </div>
-                        </div>
+              {/* Context Summary */}
+              <p className="text-xs text-slate-600 font-sans leading-relaxed line-clamp-2">
+                <span className="font-semibold text-slate-700">Context: </span>
+                {adr.context}
+              </p>
 
-                        {/* Consequences (Positive vs Negative) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Positive Consequences */}
-                          <div className="space-y-2 p-3.5 rounded-lg bg-emerald-950/20 border border-emerald-800/40">
-                            <h4 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold flex items-center space-x-1.5">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>Positive Consequences</span>
-                            </h4>
-                            <ul className="space-y-1.5 text-xs text-slate-300 font-sans">
-                              {adr.consequences_positive.map((pos, pIdx) => (
-                                <li key={pIdx} className="flex items-start space-x-2">
-                                  <span className="text-emerald-400 font-bold mt-0.5">•</span>
-                                  <span>{pos}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          {/* Negative Consequences & Mitigations */}
-                          <div className="space-y-2 p-3.5 rounded-lg bg-rose-950/20 border border-rose-800/40">
-                            <h4 className="text-xs font-mono uppercase tracking-wider text-rose-400 font-semibold flex items-center space-x-1.5">
-                              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                              <span>Trade-offs & Operational Costs</span>
-                            </h4>
-                            <ul className="space-y-1.5 text-xs text-slate-300 font-sans">
-                              {adr.consequences_negative.map((neg, nIdx) => (
-                                <li key={nIdx} className="flex items-start space-x-2">
-                                  <span className="text-rose-400 font-bold mt-0.5">•</span>
-                                  <span>{neg}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-
-                        {/* Security, Compliance & Blast Radius */}
-                        {adr.compliance_and_security && (
-                          <div className="space-y-1.5 p-3.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <h4 className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-semibold flex items-center space-x-1.5">
-                              <Shield className="w-3.5 h-3.5 text-cyan-400" />
-                              <span>Security, Compliance & Blast Radius Isolation</span>
-                            </h4>
-                            <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                              {adr.compliance_and_security}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Literature Citations */}
-                        {adr.evidence_citations && adr.evidence_citations.length > 0 && (
-                          <div className="space-y-2 pt-1">
-                            <h4 className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-semibold flex items-center space-x-1.5">
-                              <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-                              <span>Grounding Technical Evidence & Citations</span>
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {adr.evidence_citations.map((cite, cIdx) => (
-                                <div
-                                  key={cIdx}
-                                  className="p-3 rounded-lg bg-cyan-950/20 border border-cyan-800/40 text-xs space-y-1"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-bold text-cyan-300 font-mono">
-                                      {cite.source}
-                                    </span>
-                                    <span className="text-[10px] font-mono text-emerald-400">
-                                      Score: {Math.round(cite.relevance_score * 100)}%
-                                    </span>
-                                  </div>
-                                  {cite.section && (
-                                    <div className="text-[11px] text-cyan-400 font-mono">
-                                      Section: {cite.section}
-                                    </div>
-                                  )}
-                                  <p className="text-[11px] text-slate-300 italic">
-                                    "{cite.excerpt}"
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+              {/* Consequences Badges */}
+              <div className="flex items-center gap-2 text-xs font-mono text-slate-600">
+                <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  +{adr.consequences_positive?.length || 0} Benefits
+                </span>
+                <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  -{adr.consequences_negative?.length || 0} Trade-offs
+                </span>
+                {adr.evidence_citations?.length > 0 && (
+                  <span className="text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                    {adr.evidence_citations.length} Citations
+                  </span>
                 )}
               </div>
-            );
-          })
-        )}
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setSelectedAdr(adr)}
+                className="inline-flex items-center gap-1 text-xs font-mono text-indigo-600 hover:text-indigo-800 font-medium"
+              >
+                <span>View Full ADR</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCopyMarkdown(adr.id, adr.markdown_content)}
+                className="text-xs font-mono text-slate-500 hover:text-slate-800 inline-flex items-center gap-1"
+              >
+                {copiedAdrId === adr.id ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-700">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Markdown</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* Full ADR Drawer */}
+      <Drawer
+        isOpen={!!selectedAdr}
+        onClose={() => setSelectedAdr(null)}
+        title={selectedAdr?.title || "Architecture Decision Record"}
+        subtitle={`${selectedAdr?.adr_id_formatted} • Category: ${selectedAdr?.category}`}
+        widthClass="max-w-3xl"
+      >
+        {selectedAdr && (
+          <div className="space-y-6">
+            {/* Status & Category */}
+            <div className="flex items-center gap-2">
+              <StatusBadge variant="success" size="md">
+                Status: {selectedAdr.status.toUpperCase()}
+              </StatusBadge>
+              <StatusBadge variant="default" size="md">
+                Category: {selectedAdr.category}
+              </StatusBadge>
+            </div>
+
+            {/* Decision */}
+            <div className="p-4 bg-indigo-50/60 border border-indigo-200/80 rounded-xl space-y-1">
+              <div className="text-xs font-mono font-bold uppercase text-indigo-900">
+                Decision:
+              </div>
+              <p className="text-sm text-indigo-950 font-medium leading-relaxed font-sans">
+                {selectedAdr.decision}
+              </p>
+            </div>
+
+            {/* Context */}
+            <div>
+              <h4 className="text-xs font-mono font-semibold uppercase text-slate-500 mb-1.5">
+                Problem Context & Requirements:
+              </h4>
+              <p className="text-xs text-slate-800 bg-slate-50 border border-slate-200 p-3.5 rounded-xl leading-relaxed font-sans">
+                {selectedAdr.context}
+              </p>
+            </div>
+
+            {/* Positive & Negative Consequences */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-xl space-y-2">
+                <div className="text-xs font-mono font-bold text-emerald-900 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Positive Consequences (+):</span>
+                </div>
+                <ul className="text-xs text-emerald-950 space-y-1.5 list-disc pl-4 font-sans">
+                  {selectedAdr.consequences_positive?.map((p, i) => (
+                    <li key={i}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-4 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-2">
+                <div className="text-xs font-mono font-bold text-amber-900 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <span>Negative Consequences / Trade-offs (-):</span>
+                </div>
+                <ul className="text-xs text-amber-950 space-y-1.5 list-disc pl-4 font-sans">
+                  {selectedAdr.consequences_negative?.map((n, i) => (
+                    <li key={i}>{n}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Compliance & Security */}
+            {selectedAdr.compliance_and_security && (
+              <div>
+                <h4 className="text-xs font-mono font-semibold uppercase text-slate-500 mb-1.5">
+                  Security & Compliance Invariants:
+                </h4>
+                <p className="text-xs text-slate-800 bg-slate-50 border border-slate-200 p-3.5 rounded-xl leading-relaxed font-sans">
+                  {selectedAdr.compliance_and_security}
+                </p>
+              </div>
+            )}
+
+            {/* Citations */}
+            {selectedAdr.evidence_citations?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-mono font-semibold uppercase text-slate-500 mb-2">
+                  Empirical Evidence Citations ({selectedAdr.evidence_citations.length}):
+                </h4>
+                <div className="space-y-2">
+                  {selectedAdr.evidence_citations.map((cite, i) => (
+                    <div
+                      key={i}
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1 text-xs font-mono"
+                    >
+                      <div className="font-semibold text-slate-900">
+                        {cite.source} {cite.section ? `(${cite.section})` : ""}
+                      </div>
+                      <p className="text-slate-600 font-sans">{cite.excerpt}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Full Markdown Code View */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-mono font-semibold uppercase text-slate-500">
+                  Raw ADR Markdown:
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => handleCopyMarkdown(selectedAdr.id, selectedAdr.markdown_content)}
+                  className="text-xs font-mono text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Markdown</span>
+                </button>
+              </div>
+              <pre className="p-4 bg-slate-900 text-slate-100 rounded-xl text-xs font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed max-h-72">
+                {selectedAdr.markdown_content}
+              </pre>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

@@ -2,22 +2,25 @@
 
 import React from "react";
 import { ReviewDecision } from "@/lib/api";
+import { StatusBadge } from "./ui/StatusBadge";
+import { CheckCircle2, XCircle, AlertTriangle, BookOpen, Layers } from "lucide-react";
 
 interface ReviewDecisionsViewProps {
   decisions: ReviewDecision[];
 }
 
 export function ReviewDecisionsView({ decisions }: ReviewDecisionsViewProps) {
-  const getStatusBadge = (status: string) => {
+  const getStatusVariant = (status: string) => {
     switch (status.toLowerCase()) {
       case "approved":
-        return "bg-emerald-500/10 border-emerald-500/30 text-emerald-400";
+        return "success" as const;
       case "approved_with_conditions":
-        return "bg-amber-500/10 border-amber-500/30 text-amber-400";
+        return "warning" as const;
       case "overruled":
-        return "bg-rose-500/10 border-rose-500/30 text-rose-400";
+      case "rejected":
+        return "danger" as const;
       default:
-        return "bg-cyan-500/10 border-cyan-500/30 text-cyan-400";
+        return "default" as const;
     }
   };
 
@@ -26,92 +29,70 @@ export function ReviewDecisionsView({ decisions }: ReviewDecisionsViewProps) {
       {decisions.map((decision, index) => (
         <div
           key={index}
-          className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-all duration-200 shadow-lg shadow-black/20"
+          className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs hover:border-slate-300 transition-all space-y-4"
         >
           {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-800/80">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-semibold bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-800/50">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-mono font-bold text-slate-900 uppercase">
                 {decision.category}
               </span>
-              {decision.evidence_used ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              {decision.evidence_used && (
+                <StatusBadge variant="success" size="sm">
                   Grounded in Literature
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 bg-slate-950/50 px-2 py-0.5 rounded border border-slate-800">
-                  Zero Forced Evidence
-                </span>
+                </StatusBadge>
               )}
             </div>
 
             <div className="flex items-center gap-2">
               {decision.evidence_confidence != null && (
-                <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-800/40">
+                <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                   Confidence: {Math.round(decision.evidence_confidence * 100)}%
                 </span>
               )}
-              <span
-                className={`text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border font-semibold ${getStatusBadge(
-                  decision.review_status
-                )}`}
-              >
+              <StatusBadge variant={getStatusVariant(decision.review_status)} size="sm">
                 {decision.review_status.replace(/_/g, " ")}
-              </span>
+              </StatusBadge>
             </div>
           </div>
 
-          {/* Chosen Option Banner */}
-          <div className="bg-slate-950/80 rounded-lg p-3.5 border border-slate-800 mb-4">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                Authoritative Choice
-              </p>
+          {/* Chosen Option */}
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1">
+            <div className="text-[11px] font-mono uppercase font-semibold text-slate-500">
+              Adjudicated Technology Choice
             </div>
-            <p className="text-base font-semibold text-emerald-300 font-mono">
+            <div className="text-sm font-semibold font-mono text-slate-900">
               {decision.chosen_option}
-            </p>
+            </div>
           </div>
 
-          {/* Rationale */}
-          <div className="mb-4">
-            <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1">
-              Engineering Rationale
-            </p>
-            <p className="text-sm text-slate-200 leading-relaxed bg-slate-950/40 p-3 rounded-lg border border-slate-800/50">
+          {/* Rationale ("Why") */}
+          <div>
+            <div className="text-xs font-mono font-semibold text-slate-700 mb-1">
+              Engineering Rationale (Why):
+            </div>
+            <p className="text-xs text-slate-700 leading-relaxed font-sans bg-slate-50/50 p-3 rounded-lg border border-slate-100">
               {decision.rationale}
             </p>
           </div>
 
-          {/* Evidence Literature Callout (Phase 5 Grounding) */}
+          {/* Evidence Callout */}
           {decision.evidence_summary && (
-            <div className="mb-4 bg-emerald-950/20 border border-emerald-900/40 rounded-lg p-3.5">
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-emerald-400 text-xs">📖</span>
-                  <p className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-                    Empirical Knowledge Base Grounding
-                  </p>
-                </div>
-                {decision.evidence_sources && decision.evidence_sources.length > 0 && (
-                  <span className="text-[10px] font-mono text-emerald-300/80">
-                    {decision.evidence_sources.length} Cited Source{decision.evidence_sources.length > 1 ? "s" : ""}
-                  </span>
-                )}
+            <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-lg p-3.5 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-800">
+                <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Empirical Literature Evidence:</span>
               </div>
-              <p className="text-xs text-emerald-100/90 leading-relaxed font-sans mb-2">
+              <p className="text-xs text-emerald-950 leading-relaxed font-sans">
                 {decision.evidence_summary}
               </p>
-
               {decision.evidence_sources && decision.evidence_sources.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-emerald-900/30">
-                  <span className="text-[10px] font-mono text-emerald-400/80">Citations:</span>
-                  {decision.evidence_sources.map((src, srcIdx) => (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-emerald-200/50 text-[11px] font-mono text-emerald-800">
+                  <span className="font-semibold">Sources:</span>
+                  {decision.evidence_sources.map((src, i) => (
                     <span
-                      key={srcIdx}
-                      className="text-[10px] font-mono text-emerald-300 bg-emerald-950/70 border border-emerald-800/50 px-2 py-0.5 rounded"
+                      key={i}
+                      className="px-1.5 py-0.5 rounded bg-emerald-100/70 border border-emerald-200 text-emerald-900"
                     >
                       {src}
                     </span>
@@ -123,17 +104,17 @@ export function ReviewDecisionsView({ decisions }: ReviewDecisionsViewProps) {
 
           {/* Rejected Alternatives */}
           {decision.rejected_options && decision.rejected_options.length > 0 && (
-            <div className="mb-4">
-              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1.5">
-                Evaluated & Rejected Alternatives
-              </p>
+            <div>
+              <div className="text-xs font-mono font-semibold text-slate-700 mb-1.5">
+                Evaluated & Rejected Alternatives:
+              </div>
               <div className="flex flex-wrap gap-2">
-                {decision.rejected_options.map((opt, optIdx) => (
+                {decision.rejected_options.map((opt, i) => (
                   <span
-                    key={optIdx}
-                    className="inline-flex items-center gap-1.5 text-xs font-mono text-rose-300/90 bg-rose-950/30 border border-rose-900/40 px-2.5 py-1 rounded-md line-through"
+                    key={i}
+                    className="inline-flex items-center gap-1 text-xs font-mono text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md"
                   >
-                    <span>✕</span>
+                    <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                     <span>{opt}</span>
                   </span>
                 ))}
@@ -141,38 +122,36 @@ export function ReviewDecisionsView({ decisions }: ReviewDecisionsViewProps) {
             </div>
           )}
 
-          {/* Accepted Trade-offs */}
+          {/* Trade-offs */}
           {decision.trade_offs && decision.trade_offs.length > 0 && (
-            <div className="mb-4">
-              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1.5">
-                Accepted Secondary Trade-Offs
-              </p>
-              <ul className="space-y-1">
-                {decision.trade_offs.map((to, toIdx) => (
-                  <li
-                    key={toIdx}
-                    className="text-xs text-amber-200/90 bg-amber-950/20 border border-amber-900/30 p-2 rounded-md flex items-start gap-2"
+            <div>
+              <div className="text-xs font-mono font-semibold text-slate-700 mb-1.5">
+                Accepted Trade-Offs:
+              </div>
+              <div className="space-y-1.5">
+                {decision.trade_offs.map((to, i) => (
+                  <div
+                    key={i}
+                    className="text-xs text-amber-900 bg-amber-50 border border-amber-200/80 p-2.5 rounded-lg flex items-start gap-2"
                   >
-                    <span className="text-amber-400 mt-0.5">⚠️</span>
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                     <span>{to}</span>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
 
-          {/* Impacted Components */}
+          {/* Assigned Components */}
           {decision.assigned_to_components && decision.assigned_to_components.length > 0 && (
-            <div className="pt-2 flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
-                Assigned Components:
-              </span>
-              {decision.assigned_to_components.map((comp, compIdx) => (
+            <div className="pt-2 border-t border-slate-100 flex items-center gap-2 flex-wrap text-xs font-mono text-slate-500">
+              <span className="font-semibold">Assigned Components:</span>
+              {decision.assigned_to_components.map((c, i) => (
                 <span
-                  key={compIdx}
-                  className="text-xs font-mono text-indigo-300 bg-indigo-950/40 border border-indigo-800/40 px-2 py-0.5 rounded"
+                  key={i}
+                  className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-800"
                 >
-                  {comp}
+                  {c}
                 </span>
               ))}
             </div>

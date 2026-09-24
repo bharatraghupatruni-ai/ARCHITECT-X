@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Header } from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "ARCHITECT-X | Evidence-Grounded Multi-Agent Architecture Review",
@@ -14,13 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#090D16] text-slate-100 antialiased flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
-        <Header />
-        <main className="flex-1 bg-grid-pattern">{children}</main>
-        <footer className="border-t border-surface-50 py-6 text-center text-xs text-slate-500 font-mono">
-          <p>ARCHITECT-X — Phase 1 Project Foundation</p>
-        </footer>
+    <html lang="en">
+      <body className="min-h-screen bg-slate-50/70 text-slate-900 antialiased flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
+        <div className="flex-1 flex flex-col">{children}</div>
       </body>
     </html>
   );

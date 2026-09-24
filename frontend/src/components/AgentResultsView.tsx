@@ -1,176 +1,274 @@
 "use client";
 
 import React, { useState } from "react";
-import { ProjectAgentResultsResponse } from "@/lib/api";
-import { AgentCard } from "@/components/AgentCard";
-import { Cpu, ShieldCheck, Zap, RefreshCw, ChevronDown, ChevronUp, Layers, CheckCircle2 } from "lucide-react";
+import { ProjectAgentResultsResponse, AgentOutput } from "@/lib/api";
+import { AgentCard } from "./AgentCard";
+import { Drawer } from "./ui/Drawer";
+import { SectionHeader } from "./ui/SectionHeader";
+import { StatusBadge } from "./ui/StatusBadge";
+import {
+  ArrowRight,
+  Loader2,
+  RefreshCw,
+  Cpu,
+  ShieldCheck,
+  Zap,
+  CheckCircle2,
+  AlertTriangle,
+  Layers,
+  Server,
+  Radio,
+} from "lucide-react";
 
 interface AgentResultsViewProps {
   results: ProjectAgentResultsResponse;
-  projectName?: string;
   onRerunAgents?: () => void;
-  isRunningAgents?: boolean;
+  isRerunning?: boolean;
   onRunReview?: () => void;
   isRunningReview?: boolean;
 }
 
 export function AgentResultsView({
   results,
-  projectName,
   onRerunAgents,
-  isRunningAgents = false,
+  isRerunning = false,
   onRunReview,
   isRunningReview = false,
 }: AgentResultsViewProps) {
-  const [showRawJson, setShowRawJson] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "architecture" | "security" | "performance">("all");
+  const [selectedAgent, setSelectedAgent] = useState<AgentOutput | null>(null);
 
-  const { architecture, security, performance, created_at, status } = results;
+  const agents: AgentOutput[] = [
+    results.architecture,
+    results.security,
+    results.performance,
+  ].filter(Boolean) as AgentOutput[];
 
   return (
-    <div className="space-y-8 font-sans">
-      {/* Header Banner */}
-      <div className="bg-surface-200/90 border border-surface-50 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2.5">
-            <span className="text-xs font-mono font-semibold uppercase px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              Phase 3 Multi-Agent Core
-            </span>
-            <span className="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2 py-0.5 rounded flex items-center space-x-1">
-              <CheckCircle2 className="w-3 h-3" />
-              <span>3 Agents Completed</span>
-            </span>
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+        <SectionHeader
+          badge="Stage 3 • Specialized Agent Outputs"
+          title="Independent AI Agent Proposals"
+          description="Three specialized architects formulated domain-specific strategies in isolation. Inspect their independent recommendations before running conflict synthesis."
+          actions={
+            <div className="flex items-center gap-2">
+              {onRerunAgents && (
+                <button
+                  type="button"
+                  onClick={onRerunAgents}
+                  disabled={isRerunning || isRunningReview}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-mono text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRerunning ? "animate-spin" : ""}`} />
+                  <span>{isRerunning ? "Re-Evaluating..." : "Re-Run Agents"}</span>
+                </button>
+              )}
+
+              {onRunReview && (
+                <button
+                  type="button"
+                  onClick={onRunReview}
+                  disabled={isRunningReview || isRerunning}
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs font-mono transition-all shadow-sm disabled:opacity-50"
+                >
+                  {isRunningReview ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Adjudicating Decisions...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Run Reviewer & Conflict Synthesis</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          }
+        />
+
+        {/* 3 Compact Agent Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {agents.map((agent) => (
+            <AgentCard
+              key={agent.agent_type}
+              agent={agent}
+              onViewDetails={(a) => setSelectedAgent(a)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom Action Card */}
+      {onRunReview && (
+        <div className="bg-indigo-50/70 border border-indigo-200/90 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h4 className="text-sm font-bold text-indigo-950 font-mono">
+              Proceed to Conflict Detection & Adjudication
+            </h4>
+            <p className="text-xs text-indigo-900/80 mt-0.5">
+              The Reviewer Agent identifies architectural trade-offs between these 3 proposals and grounds decisions in empirical RAG literature.
+            </p>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mt-2">
-            {projectName ? `${projectName} — Multi-Agent Architecture Review` : "Multi-Agent Architecture Review"}
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 font-mono">
-            Independent evaluations produced without cross-agent bias • Ready for Phase 4 Conflict Engine
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-          {onRerunAgents && (
-            <button
-              onClick={onRerunAgents}
-              disabled={isRunningAgents || isRunningReview}
-              type="button"
-              className="px-3.5 py-2 text-xs font-mono text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 shadow-sm transition-all flex items-center space-x-2 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRunningAgents ? "animate-spin" : ""}`} />
-              <span>{isRunningAgents ? "Evaluating..." : "Re-Run Agents"}</span>
-            </button>
-          )}
-
-          {onRunReview && (
-            <button
-              onClick={onRunReview}
-              disabled={isRunningReview || isRunningAgents}
-              type="button"
-              className="px-4 py-2 text-xs font-mono font-semibold text-slate-950 bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-300 hover:to-teal-300 rounded-lg shadow-lg shadow-cyan-500/20 transition-all flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
-            >
-              <Zap className={`w-3.5 h-3.5 text-slate-950 ${isRunningReview ? "animate-spin" : ""}`} />
-              <span>{isRunningReview ? "Synthesizing Review..." : "Run Reviewer & Conflict Engine"}</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* View Tabs */}
-      <div className="flex items-center space-x-2 border-b border-surface-50 pb-2">
-        <button
-          onClick={() => setActiveTab("all")}
-          type="button"
-          className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
-            activeTab === "all"
-              ? "bg-surface-100 text-white border border-surface-50 shadow-sm"
-              : "text-slate-400 hover:text-slate-200"
-          }`}
-        >
-          All 3 Agents (Grid)
-        </button>
-        {architecture && (
           <button
-            onClick={() => setActiveTab("architecture")}
             type="button"
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center space-x-1.5 ${
-              activeTab === "architecture"
-                ? "bg-indigo-950/80 text-indigo-300 border border-indigo-800/50 shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
+            onClick={onRunReview}
+            disabled={isRunningReview || isRerunning}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-all shadow-sm shrink-0 disabled:opacity-50"
           >
-            <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Architecture</span>
+            {isRunningReview ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Running Review...</span>
+              </>
+            ) : (
+              <>
+                <span>Run Reviewer & Synthesis</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
-        )}
-        {security && (
-          <button
-            onClick={() => setActiveTab("security")}
-            type="button"
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center space-x-1.5 ${
-              activeTab === "security"
-                ? "bg-emerald-950/80 text-emerald-300 border border-emerald-800/50 shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Security</span>
-          </button>
-        )}
-        {performance && (
-          <button
-            onClick={() => setActiveTab("performance")}
-            type="button"
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center space-x-1.5 ${
-              activeTab === "performance"
-                ? "bg-amber-950/80 text-amber-300 border border-amber-800/50 shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
-            <span>Performance</span>
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Agents Cards Grid / Tab */}
-      {activeTab === "all" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-          {architecture && <AgentCard agent={architecture} />}
-          {security && <AgentCard agent={security} />}
-          {performance && <AgentCard agent={performance} />}
-        </div>
-      ) : activeTab === "architecture" && architecture ? (
-        <div className="max-w-3xl mx-auto">
-          <AgentCard agent={architecture} />
-        </div>
-      ) : activeTab === "security" && security ? (
-        <div className="max-w-3xl mx-auto">
-          <AgentCard agent={security} />
-        </div>
-      ) : activeTab === "performance" && performance ? (
-        <div className="max-w-3xl mx-auto">
-          <AgentCard agent={performance} />
-        </div>
-      ) : null}
+      {/* Detailed Analysis Drawer */}
+      <Drawer
+        isOpen={!!selectedAgent}
+        onClose={() => setSelectedAgent(null)}
+        title={selectedAgent?.summary ? `${selectedAgent.agent_type.toUpperCase()} Agent Analysis` : "Agent Analysis"}
+        subtitle="Complete architectural decisions, proposed components, connections, and risks"
+        widthClass="max-w-2xl"
+      >
+        {selectedAgent && (
+          <div className="space-y-6">
+            {/* Executive Summary */}
+            <div>
+              <h4 className="text-xs font-mono font-semibold uppercase text-slate-500 mb-2">
+                Executive Evaluation
+              </h4>
+              <p className="text-sm text-slate-800 bg-slate-50 border border-slate-200 p-4 rounded-xl leading-relaxed font-sans">
+                {selectedAgent.summary}
+              </p>
+            </div>
 
-      {/* Collapsible Raw JSON Dump */}
-      <div className="pt-4 border-t border-surface-50">
-        <button
-          type="button"
-          onClick={() => setShowRawJson(!showRawJson)}
-          className="text-xs font-mono text-slate-400 hover:text-white flex items-center space-x-1.5 transition-colors cursor-pointer"
-        >
-          {showRawJson ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          <span>{showRawJson ? "Hide Multi-Agent Raw JSON" : "View Multi-Agent Raw JSON Response"}</span>
-        </button>
+            {/* Recommendations */}
+            {selectedAgent.recommendations?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-mono font-semibold uppercase text-slate-500 mb-2">
+                  Tactical Recommendations ({selectedAgent.recommendations.length})
+                </h4>
+                <div className="space-y-2">
+                  {selectedAgent.recommendations.map((rec, i) => (
+                    <div
+                      key={i}
+                      className="p-3 bg-white border border-slate-200 rounded-lg text-xs font-sans text-slate-800 flex items-start gap-2.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{rec}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {showRawJson && (
-          <pre className="mt-3 p-4 rounded-xl bg-surface-300 border border-surface-50 text-slate-300 text-xs font-mono overflow-x-auto max-h-96">
-            {JSON.stringify(results, null, 2)}
-          </pre>
+            {/* Decisions List */}
+            {selectedAgent.decisions?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-mono font-semibold uppercase text-slate-500 mb-2">
+                  Architectural Decisions ({selectedAgent.decisions.length})
+                </h4>
+                <div className="space-y-3">
+                  {selectedAgent.decisions.map((d, i) => (
+                    <div
+                      key={i}
+                      className="p-4 bg-white border border-slate-200 rounded-xl space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold font-mono text-slate-900">
+                          {d.decision}
+                        </span>
+                        <StatusBadge variant="default" size="sm">
+                          {d.choice}
+                        </StatusBadge>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                        <span className="font-semibold text-slate-700">Rationale: </span>
+                        {d.reason}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Proposed Components */}
+            {selectedAgent.components?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-mono font-semibold uppercase text-slate-500 mb-2">
+                  Proposed Components ({selectedAgent.components.length})
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {selectedAgent.components.map((c, i) => (
+                    <div
+                      key={i}
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 font-mono">
+                          {c.name}
+                        </span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 bg-slate-200 rounded text-slate-700">
+                          {c.type}
+                        </span>
+                      </div>
+                      {c.technology && (
+                        <div className="text-[11px] font-mono text-indigo-700">
+                          Tech: {c.technology}
+                        </div>
+                      )}
+                      <p className="text-[11px] text-slate-600 leading-tight">
+                        {c.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Risks & Mitigations */}
+            {selectedAgent.risks?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-mono font-semibold uppercase text-slate-500 mb-2">
+                  Identified Risks & Mitigations ({selectedAgent.risks.length})
+                </h4>
+                <div className="space-y-2.5">
+                  {selectedAgent.risks.map((r, i) => (
+                    <div
+                      key={i}
+                      className="p-3 bg-rose-50/60 border border-rose-200 rounded-xl space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-rose-900 font-mono">
+                          {r.title}
+                        </span>
+                        <StatusBadge variant="danger" size="sm">
+                          {r.severity}
+                        </StatusBadge>
+                      </div>
+                      <p className="text-xs text-rose-950 leading-relaxed">
+                        <span className="font-semibold text-rose-800">Mitigation: </span>
+                        {r.mitigation}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
-      </div>
+      </Drawer>
     </div>
   );
 }

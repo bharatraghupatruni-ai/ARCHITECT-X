@@ -59,7 +59,7 @@ export const ChallengeLoadingState: React.FC<ChallengeLoadingStateProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider rounded bg-red-500/20 text-red-300 border border-red-500/30">
-              Phase 8 Simulation Active
+              Simulation Active
             </span>
             <span className="text-xs text-slate-400 font-mono">Live Failure Injection</span>
           </div>

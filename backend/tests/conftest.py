@@ -24,10 +24,13 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
-    """Create test tables once for the test session."""
+    """Create test tables once for the test session and force mock mode."""
+    original_mock_mode = settings.LLM_MOCK_MODE
+    settings.LLM_MOCK_MODE = True
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)
+    settings.LLM_MOCK_MODE = original_mock_mode
 
 
 @pytest.fixture
